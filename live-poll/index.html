@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>실시간 투표 참여</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=IBM+Plex+Sans+KR:wght@400;600;700&family=IBM+Plex+Mono:wght@500;700&display=swap">
+<link rel="stylesheet" href="style.css">
+<style>
+.wrap { max-width: 520px; margin: 0 auto; padding: 20px 16px 48px; min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; }
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 20px; min-height: 28px; }
+.top .room { font-family: var(--f-display); font-size: 18px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.top .who { font-size: 14px; color: var(--muted); white-space: nowrap; }
+.top .who button { border: 0; background: none; color: var(--accent); text-decoration: underline; padding: 0 0 0 4px; cursor: pointer; font-size: 14px; }
+.panel { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 16px; }
+.panel h1 { font-size: 28px; }
+.sub { color: var(--ink-2); margin: 0; }
+.code-input { font-family: var(--f-mono); font-size: 32px; letter-spacing: .3em; text-align: center; }
+.waiting { text-align: center; color: var(--ink-2); }
+.waiting .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); margin: 0 4px; animation: pulse 1.2s infinite ease-in-out; }
+.waiting .dot:nth-child(2) { animation-delay: .2s; }
+.waiting .dot:nth-child(3) { animation-delay: .4s; }
+@keyframes pulse { 0%, 100% { opacity: .2; transform: scale(.8); } 50% { opacity: 1; transform: scale(1); } }
+.q-title { font-size: 24px; }
+.choices { display: flex; flex-direction: column; gap: 10px; }
+.choice {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  min-height: 58px; padding: 12px 16px; text-align: left;
+  border: 1.5px solid var(--line); border-radius: 12px; background: var(--card);
+  font-size: 18px; cursor: pointer; transition: border-color .15s, background .15s;
+  word-break: keep-all; overflow-wrap: anywhere;
+}
+.choice .mark { flex: none; width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--line); display: grid; place-items: center; }
+.choice.on { border-color: var(--accent); background: var(--accent-soft); }
+.choice.on .mark { border-color: var(--accent); background: var(--accent); }
+.choice.on .mark::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #fff; }
+.choice:disabled { cursor: default; }
+.status { font-size: 14px; color: var(--accent); min-height: 1.4em; margin: 0; font-weight: 600; }
+.status.locked { color: var(--danger); }
+.sent { background: var(--accent-soft); border-radius: 12px; padding: 14px 16px; font-size: 18px; word-break: break-word; }
+.count { text-align: right; font-size: 13px; color: var(--muted); margin-top: -10px; }
+</style>
+</head>
+<body>
+<div class="offline" id="offline" hidden>연결이 끊겼습니다. 다시 연결하는 중…</div>
+<div class="wrap">
+  <div class="top">
+    <div class="room" id="roomTitle"></div>
+    <div class="who" id="who" hidden><span id="whoName"></span><button type="button" id="renameBtn">이름 바꾸기</button></div>
+  </div>
+
+  <section class="panel" id="setupPanel" hidden>
+    <div class="notice">아직 Firebase 설정이 안 되어 있습니다. <code>live-poll/firebase-config.js</code>에 값을 넣어 주세요. (README 참고)</div>
+  </section>
+
+  <section class="panel" id="loadingPanel">
+    <p class="waiting"><span class="dot"></span><span class="dot"></span><span class="dot"></span></p>
+  </section>
+
+  <form class="panel" id="codePanel" hidden autocomplete="off">
+    <h1>참여 코드를 입력하세요</h1>
+    <p class="sub">발표 화면에 보이는 숫자 4자리</p>
+    <input class="field code-input" id="codeInput" inputmode="numeric" pattern="[0-9]*" maxlength="4" aria-label="참여 코드">
+    <button class="btn primary" type="submit">입장</button>
+    <p class="err" id="codeErr"></p>
+  </form>
+
+  <form class="panel" id="namePanel" hidden autocomplete="off">
+    <h1>이름을 알려 주세요</h1>
+    <p class="sub">발표자 화면에 참여자로 표시됩니다.</p>
+    <input class="field" id="nameInput" maxlength="30" aria-label="이름" placeholder="예: 김민지">
+    <button class="btn primary" type="submit">시작하기</button>
+    <p class="err" id="nameErr"></p>
+  </form>
+
+  <section class="panel" id="waitPanel" hidden>
+    <div class="waiting">
+      <p><span class="dot"></span><span class="dot"></span><span class="dot"></span></p>
+      <h1 id="waitTitle">입장 완료</h1>
+      <p class="sub">발표자가 질문을 열면 여기에 바로 나타납니다.</p>
+    </div>
+  </section>
+
+  <section class="panel" id="qPanel" hidden>
+    <h1 class="q-title" id="qTitle"></h1>
+    <div class="choices" id="choices"></div>
+    <form id="textForm" autocomplete="off" hidden>
+      <div id="textEdit">
+        <input class="field" id="textInput" maxlength="200" placeholder="답을 입력하세요" aria-label="답">
+        <p class="count" id="textCount"></p>
+        <button class="btn primary" type="submit" style="width:100%">보내기</button>
+      </div>
+      <div id="textSent" hidden>
+        <div class="sent" id="textSentValue"></div>
+        <button class="btn ghost small" type="button" id="textEditBtn" style="margin-top:10px">수정하기</button>
+      </div>
+    </form>
+    <p class="status" id="qStatus"></p>
+  </section>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script type="module">
+import { ref, get, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { db, configured, signIn, explainError, watchConnection, safeGet, safeSet, toList, escapeHtml } from "./common.js";
+
+const $ = (id) => document.getElementById(id);
+const panels = ["setupPanel", "loadingPanel", "codePanel", "namePanel", "waitPanel", "qPanel"];
+function show(id) { for (const p of panels) $(p).hidden = p !== id; }
+
+let toastTimer;
+function toast(msg) {
+  $("toast").textContent = msg; $("toast").hidden = false;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { $("toast").hidden = true; }, 2600);
+}
+
+let uid, code, meta = null, questions = [], state = {}, me = null, myAnswer = null;
+let unsubs = [], answerUnsub = null, answerQid = null, editingText = false;
+
+start();
+
+async function start() {
+  if (!configured) { show("setupPanel"); return; }
+  try {
+    uid = (await signIn()).uid;
+  } catch (err) {
+    show("codePanel"); $("codeErr").textContent = explainError(err); return;
+  }
+  watchConnection($("offline"));
+  const fromUrl = new URLSearchParams(location.search).get("code");
+  if (fromUrl && /^\d{4}$/.test(fromUrl)) enterRoom(fromUrl);
+  else { show("codePanel"); $("codeInput").focus(); }
+}
+
+$("codePanel").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const c = $("codeInput").value.trim();
+  if (!/^\d{4}$/.test(c)) { $("codeErr").textContent = "숫자 4자리를 입력해 주세요."; return; }
+  enterRoom(c);
+});
+
+async function enterRoom(c) {
+  show("loadingPanel");
+  $("codeErr").textContent = "";
+  const metaSnap = await get(ref(db, `rooms/${c}/meta`)).catch(() => null);
+  if (!metaSnap || !metaSnap.exists()) {
+    show("codePanel"); $("codeInput").value = c;
+    $("codeErr").textContent = "그런 코드의 발표가 없습니다. 숫자를 다시 확인해 주세요.";
+    return;
+  }
+  code = c;
+  if (new URLSearchParams(location.search).get("code") !== c) history.replaceState(null, "", "?code=" + c);
+  const meSnap = await get(ref(db, `rooms/${c}/participants/${uid}`));
+  me = meSnap.val();
+
+  unsubs.forEach((u) => u()); unsubs = [];
+  unsubs.push(onValue(ref(db, `rooms/${c}/meta`), (s) => { meta = s.val(); render(); }));
+  unsubs.push(onValue(ref(db, `rooms/${c}/questions`), (s) => { questions = toList(s.val()); render(); }));
+  unsubs.push(onValue(ref(db, `rooms/${c}/state`), (s) => { state = s.val() || {}; render(); }));
+}
+
+function needsName() {
+  return meta && meta.askName && !(me && me.name);
+}
+
+async function join(name) {
+  await set(ref(db, `rooms/${code}/participants/${uid}`), { name, at: Date.now() });
+  me = { name };
+  safeSet("livepoll-name", name);
+}
+
+$("namePanel").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const name = $("nameInput").value.trim();
+  if (!name) { $("nameErr").textContent = "이름을 입력해 주세요."; return; }
+  try { await join(name); render(); }
+  catch (err) { $("nameErr").textContent = explainError(err); }
+});
+
+$("renameBtn").addEventListener("click", () => {
+  $("nameInput").value = (me && me.name) || "";
+  me = { ...me, name: "" };
+  render();
+});
+
+function render() {
+  if (!meta) return;
+  $("roomTitle").textContent = meta.title || "";
+  document.title = (meta.title ? meta.title + " · " : "") + "실시간 투표 참여";
+
+  if (needsName()) {
+    $("who").hidden = true;
+    if ($("namePanel").hidden) {
+      show("namePanel");
+      if (!$("nameInput").value) $("nameInput").value = safeGet("livepoll-name") || "";
+      $("nameInput").focus();
+    }
+    return;
+  }
+  // 이름을 받지 않는 발표도 참여 인원은 세어야 하니 빈 이름으로 등록해 둔다
+  if (!me) { me = { name: "" }; join("").catch(() => { me = null; }); }
+  $("who").hidden = !meta.askName;
+  $("whoName").textContent = (me && me.name) || "";
+
+  const q = questions.find((x) => x.id === state.qid);
+  if (!q) {
+    watchAnswer(null);
+    $("waitTitle").textContent = state.qid ? "잠시만 기다려 주세요" : "입장 완료";
+    show("waitPanel");
+    return;
+  }
+  watchAnswer(q.id);
+  show("qPanel");
+  renderQuestion(q);
+}
+
+function watchAnswer(qid) {
+  if (qid === answerQid) return;
+  if (answerUnsub) answerUnsub();
+  answerUnsub = null; answerQid = qid; myAnswer = null; editingText = false;
+  $("textInput").value = "";
+  if (!qid) return;
+  answerUnsub = onValue(ref(db, `rooms/${code}/responses/${qid}/${uid}`), (s) => {
+    myAnswer = s.val();
+    render();
+  });
+}
+
+function renderQuestion(q) {
+  const locked = state.locked === true;
+  $("qTitle").textContent = q.title || "";
+  const isChoice = q.type === "choice";
+  $("choices").hidden = !isChoice;
+  $("textForm").hidden = isChoice;
+
+  if (isChoice) {
+    const opts = toList(q.options);
+    const html = opts.map((o, i) =>
+      `<button type="button" class="choice${myAnswer === i ? " on" : ""}" data-i="${i}" ${locked ? "disabled" : ""}>` +
+      `<span class="mark"></span><span>${escapeHtml(o)}</span></button>`).join("");
+    if ($("choices").dataset.sig !== q.id + "|" + html) {
+      $("choices").innerHTML = html;
+      $("choices").dataset.sig = q.id + "|" + html;
+    }
+  } else {
+    const hasSent = typeof myAnswer === "string" && myAnswer.length > 0;
+    const showEdit = !locked && (!hasSent || editingText);
+    $("textEdit").hidden = !showEdit;
+    $("textSent").hidden = showEdit || !hasSent;
+    $("textSentValue").textContent = hasSent ? myAnswer : "";
+    $("textEditBtn").hidden = locked;
+    $("textInput").disabled = locked;
+    updateCount();
+  }
+
+  const answered = myAnswer !== null && myAnswer !== undefined;
+  $("qStatus").classList.toggle("locked", locked);
+  $("qStatus").textContent = locked
+    ? (answered ? "응답이 마감되었습니다. 참여해 주셔서 감사합니다." : "응답이 마감되었습니다.")
+    : (answered ? "✓ 응답이 전달되었습니다. 마감 전까지 바꿀 수 있어요." : "");
+}
+
+$("choices").addEventListener("click", async (e) => {
+  const btn = e.target.closest(".choice");
+  if (!btn || btn.disabled) return;
+  const i = Number(btn.dataset.i);
+  try { await set(ref(db, `rooms/${code}/responses/${answerQid}/${uid}`), i); }
+  catch { toast("전송하지 못했습니다. 마감되었을 수 있어요."); }
+});
+
+$("textForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const v = $("textInput").value.trim();
+  if (!v) return;
+  try {
+    await set(ref(db, `rooms/${code}/responses/${answerQid}/${uid}`), v);
+    editingText = false; render();
+  } catch { toast("전송하지 못했습니다. 마감되었을 수 있어요."); }
+});
+
+$("textEditBtn").addEventListener("click", () => {
+  editingText = true;
+  $("textInput").value = myAnswer || "";
+  render();
+  $("textInput").focus();
+});
+
+function updateCount() {
+  const n = $("textInput").value.length;
+  $("textCount").textContent = n > 150 ? `${n}/200` : "";
+}
+$("textInput").addEventListener("input", updateCount);
+</script>
+</body>
+</html>
