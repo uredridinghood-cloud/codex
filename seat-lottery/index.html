@@ -76,6 +76,7 @@ button { font: inherit; cursor: pointer; }
 .btn:disabled { opacity: .45; cursor: not-allowed; }
 .btn:focus-visible, .seat:focus-visible, .seg label:focus-within, textarea:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 .msg { min-height: 1.5em; margin: 0; text-align: center; color: var(--chalk); }
+.names-status { margin: 0; font-size: 13px; color: var(--chalk); }
 .seg { display: inline-flex; border: 1.5px solid var(--line); border-radius: 10px; overflow: hidden; }
 .seg label { padding: 6px 12px; cursor: pointer; color: var(--chalk-dim); font-size: 14px; }
 .seg input { position: absolute; opacity: 0; pointer-events: none; }
@@ -88,7 +89,7 @@ button { font: inherit; cursor: pointer; }
 .field span { font-size: 13px; color: var(--chalk-dim); }
 input[type=number], textarea { font: inherit; color: var(--chalk); background: var(--board-deep); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
 input[type=number] { width: 110px; font-family: var(--f-mono); }
-textarea { width: 100%; min-height: 128px; resize: vertical; line-height: 1.5; }
+textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
 .hint { margin: 0; font-size: 13px; color: var(--chalk-dim); }
 .warn { margin: 0; font-size: 13px; color: var(--warn); }
 .log { margin: 0; padding: 0; list-style: none; max-height: 200px; overflow-y: auto; display: grid; gap: 2px; font-size: 14px; counter-reset: n; border-top: 1px solid var(--line); padding-top: 8px; }
@@ -103,7 +104,7 @@ textarea { width: 100%; min-height: 128px; resize: vertical; line-height: 1.5; }
 .seats {
   --img: clamp(36px, 6.4vw, 76px);
   --desk-h: clamp(16px, 2.1vw, 22px);
-  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: clamp(8px, 2.8vw, 30px);
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(10px, 3.4vw, 40px);
   margin-top: 4px;
 }
 .bundan { display: grid; gap: 6px; align-content: start; min-width: 0; }
@@ -135,9 +136,12 @@ textarea { width: 100%; min-height: 128px; resize: vertical; line-height: 1.5; }
 .front .podium { width: min(36%, 200px); height: 12px; border-radius: 3px; background: var(--wood-deep); }
 .front small { color: var(--chalk-dim); font-size: 12px; letter-spacing: .06em; }
 
-.fly { position: absolute; left: 0; top: 0; width: 0; height: 0; z-index: 5; pointer-events: none; }
-.fly img { position: absolute; width: var(--d); height: var(--d); left: calc(var(--d) / -2); top: calc(var(--d) / -2); filter: drop-shadow(0 3px 4px rgba(0,0,0,.35)); }
-.fly .bubble { position: absolute; left: 0; bottom: calc(var(--d) * 0.36 + 4px); transform: translateX(-50%); font-size: 13px; }
+.fly { position: absolute; left: 0; top: 0; width: var(--d); height: var(--d); margin: calc(var(--d) / -2) 0 0 calc(var(--d) / -2); z-index: 5; pointer-events: none; will-change: transform; }
+.fly img { display: block; width: 100%; height: 100%; }
+.now { display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 6px 12px; margin-bottom: 8px; border-radius: 12px; background: var(--board-deep); }
+.now img { width: 56px; height: 56px; flex: none; }
+.now .label { font-size: 13px; color: var(--chalk-dim); }
+.now .name { font-family: var(--f-display); font-size: clamp(24px, 4vw, 34px); line-height: 1.1; color: var(--accent); overflow-wrap: anywhere; }
 
 /* 설계 메모 */
 .notes { grid-area: notes; display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); }
@@ -153,7 +157,7 @@ textarea { width: 100%; min-height: 128px; resize: vertical; line-height: 1.5; }
   <header>
     <div>
       <h1>우리 반 자리 뽑기</h1>
-      <p class="sub">동물 구슬 추첨 → 핀볼 → 교실 자리. 4분단 · 짝꿍 2열 · 5줄, 모두 40석</p>
+      <p class="sub">동물 구슬 추첨 → 핀볼 → 교실 자리. 3분단 · 짝꿍 2열 · 5줄, 모두 30석</p>
     </div>
     <div class="chips" aria-live="polite">
       <span class="chip">남은 구슬 <b id="leftBalls">0</b></span>
@@ -189,27 +193,13 @@ textarea { width: 100%; min-height: 128px; resize: vertical; line-height: 1.5; }
       <p class="step">준비 · 명단</p>
       <h2 id="setupTitle">구슬에 넣을 학생</h2>
     </div>
-    <div class="seg" role="radiogroup" aria-label="구슬 종류">
-      <label><input type="radio" name="mode" value="num" id="modeNum" checked> 번호로</label>
-      <label><input type="radio" name="mode" value="name" id="modeName"> 이름으로</label>
-    </div>
-    <label class="field" id="numField"><span>학생 수 (1~40)</span><input type="number" id="count" min="1" max="40" value="30"></label>
-    <label class="field" id="nameField" hidden><span>한 줄에 한 명씩 (아래는 예시 명단)</span><textarea id="names">김민준
-이서연
-박도윤
-최하은
-정시우
-강지아
-윤예준
-장수아
-임주원
-한지유
-오건우
-서채원</textarea></label>
+    <label class="field" id="numField"><span>학생 수 (1~30) · 이름을 넣지 않으면 번호로 뽑습니다</span><input type="number" id="count" min="1" max="30" value="30"></label>
+    <label class="field"><span>이름 붙여넣기 (선택) · 한 줄에 한 명, 쉼표나 엑셀 칸도 됩니다</span><textarea id="names" placeholder="예)&#10;김민준&#10;이서연&#10;박도윤"></textarea></label>
+    <p class="names-status" id="namesStatus" aria-live="polite"></p>
     <div class="controls" style="justify-content:flex-start">
       <button class="btn" id="applyBtn">구슬 다시 넣기</button>
     </div>
-    <p class="hint">학생마다 동물이 하나씩 정해집니다. 뽑기 전에 교실 자리를 누르면 ‘사용 안 함’으로 막을 수 있고, 다시 누르면 풀립니다.</p>
+    <p class="hint">학생마다 서로 다른 동물이 하나씩 정해집니다(30종). 뽑기 전에 교실 자리를 누르면 ‘사용 안 함’으로 막을 수 있고, 다시 누르면 풀립니다.</p>
     <p class="warn" id="warn" hidden></p>
     <ol class="log" id="log" aria-label="배정 기록"></ol>
   </section>
@@ -217,6 +207,7 @@ textarea { width: 100%; min-height: 128px; resize: vertical; line-height: 1.5; }
   <section class="card stage" id="stage" aria-labelledby="stageTitle">
     <p class="step">Step 2 · 핀볼 → Step 3 · 자리</p>
     <h2 id="stageTitle">핀에 통통 튕기며 내려가 자리에 앉습니다</h2>
+    <div class="now" aria-live="polite"><span id="nowFace"></span><div><div class="label" id="nowLabel">뽑힌 친구 이름이 여기에 나옵니다</div><div class="name" id="nowName">–</div></div></div>
     <canvas id="pin" aria-hidden="true"></canvas>
     <div class="seats" id="seats"></div>
     <div class="front"><div class="podium"></div><small>교탁 · 앞쪽</small></div>
@@ -226,9 +217,9 @@ textarea { width: 100%; min-height: 128px; resize: vertical; line-height: 1.5; }
     <section>
       <h3>화면 구성</h3>
       <ul>
-        <li><b>추첨기</b>: 동물 얼굴 구슬이 통 안에서 굴러다니고, 뽑을 때 바람이 불듯 섞인 뒤 아래 구멍으로 한 마리가 나옵니다.</li>
-        <li><b>핀볼 판</b>: 울퉁불퉁한 핀에 부딪히며 내려가 아래쪽 칸 8개(분단마다 왼쪽·오른쪽) 중 하나로 들어갑니다.</li>
-        <li><b>교실</b>: 교탁이 맨 아래, 그 바로 위가 1줄입니다. 4분단 × 짝꿍 2열 × 5줄 = 40석.</li>
+        <li><b>추첨기</b>: 학생마다 서로 다른 동물 얼굴(최대 30종) 구슬이 통 안에서 굴러다니고, 뽑을 때 바람이 불듯 섞인 뒤 아래 구멍으로 한 마리가 나옵니다.</li>
+        <li><b>핀볼 판</b>: 울퉁불퉁한 핀에 부딪히며 내려가 아래쪽 칸 6개(분단마다 왼쪽·오른쪽) 중 하나로 들어갑니다.</li>
+        <li><b>교실</b>: 교탁이 맨 아래, 그 바로 위가 1줄입니다. 3분단 × 짝꿍 2열 × 5줄 = 30석.</li>
       </ul>
     </section>
     <section>
@@ -236,7 +227,7 @@ textarea { width: 100%; min-height: 128px; resize: vertical; line-height: 1.5; }
       <ol>
         <li>구슬을 섞는다 (보통 속도 약 2.6초)</li>
         <li>남은 구슬 중 하나가 구멍으로 나온다</li>
-        <li>핀볼 판 위로 옮겨져 떨어진다</li>
+        <li>이름은 핀볼 판 위에 크게 고정되고, 캐릭터만 판 위로 옮겨져 떨어진다</li>
         <li>핀에 튕기며 내려가 칸 하나로 들어간다</li>
         <li>그 칸 아래 자리에 동물과 이름 말풍선이 앉는다</li>
       </ol>
@@ -256,14 +247,14 @@ textarea { width: 100%; min-height: 128px; resize: vertical; line-height: 1.5; }
     </section>
   </section>
 
-  <div class="fly" id="fly" hidden><span class="bubble" id="flyName"></span><img id="flyImg" alt=""></div>
+  <div class="fly" id="fly" hidden><img id="flyImg" alt=""></div>
 </div>
 
 <script>
 (() => {
   const $ = (s) => document.querySelector(s);
   const app = $('#app');
-  const BUNDAN = 4, ROWS = 5, SIDES = 2, COLS = BUNDAN * SIDES;
+  const BUNDAN = 3, ROWS = 5, SIDES = 2, COLS = BUNDAN * SIDES;
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   /* ---------- 동물 얼굴 ---------- */
@@ -272,7 +263,12 @@ textarea { width: 100%; min-height: 128px; resize: vertical; line-height: 1.5; }
     ['panda', '판다'], ['fox', '여우'], ['pig', '돼지'], ['frog', '개구리'],
     ['chick', '병아리'], ['koala', '코알라'], ['tiger', '호랑이'], ['mouse', '생쥐'],
     ['penguin', '펭귄'], ['lion', '사자'], ['monkey', '원숭이'], ['hamster', '햄스터'],
+    ['owl', '부엉이'], ['elephant', '코끼리'], ['cow', '젖소'], ['sheep', '양'],
+    ['raccoon', '너구리'], ['hedgehog', '고슴도치'], ['deer', '아기사슴'], ['squirrel', '다람쥐'],
+    ['duck', '오리'], ['horse', '말'], ['giraffe', '기린'], ['hippo', '하마'],
+    ['alpaca', '알파카'], ['crocodile', '악어'],
   ];
+  const MAX = ANIMALS.length; // 30명, 동물이 겹치지 않는 최대 인원
   const KO = Object.fromEntries(ANIMALS);
   const EXT = 78;                // 그림 반경 (얼굴 반경은 50)
   const FACE = 50 / EXT;         // 이미지 크기 대비 얼굴 지름 비율
@@ -351,6 +347,72 @@ textarea { width: 100%; min-height: 128px; resize: vertical; line-height: 1.5; }
       case 'hamster':
         both((m) => { circ(m * 32, -40, 12, '#f2c48d', 1); circ(m * 32, -40, 6, '#f7b3bf'); });
         face('#f2c48d'); ell(0, 20, 40, 26, 0, '#fff7ea'); eyes(-6); nose(6, '#f08fa3', 4, 3); mouth(11); cheeks(14, 31); break;
+      case 'owl':
+        both((m) => poly([[m * 26, -42], [m * 40, -66], [m * 44, -30]], '#8a6446', 1));
+        face('#9b7653'); ell(0, 30, 24, 14, 0, '#c9a27c');
+        both((m) => circ(m * 19, -6, 16, '#fdf3e1', 1)); eyes(-6, 19, 7);
+        poly([[-6, 6], [6, 6], [0, 19]], '#f3a23a', 1); break;
+      case 'elephant':
+        both((m) => { ell(m * 46, -2, 22, 30, 0, '#9fb0c4', 1); ell(m * 46, -2, 13, 20, 0, '#f2c3cd'); });
+        face('#aebfd3'); ell(0, 26, 10, 22, 0, '#aebfd3', 1); circ(0, 12, 9, '#aebfd3');
+        eyes(-10, 20); cheeks(8, 31); break;
+      case 'cow':
+        both((m) => { poly([[m * 14, -44], [m * 22, -64], [m * 28, -42]], '#f2e2b0', 1); ell(m * 50, -18, 15, 8, m * 0.35, '#fbfbf8', 1); });
+        face('#fbfbf8'); ell(-24, -24, 13, 10, 0.4, '#3a3a3a'); ell(30, -6, 9, 13, -0.3, '#3a3a3a');
+        ell(0, 23, 27, 16, 0, '#f7b8c4'); both((m) => ell(m * 9, 23, 3.5, 5, 0, '#b9566b')); eyes(-6); break;
+      case 'sheep':
+        both((m) => ell(m * 48, 6, 14, 7, m * 0.45, '#e8d6c2', 1));
+        for (let i = 0; i < 12; i++) { const a = i * Math.PI / 6; circ(Math.cos(a) * 44, Math.sin(a) * 44 - 4, 14, '#fbf7ee', true); }
+        circ(0, -4, 46, '#fbf7ee');
+        ell(0, 10, 30, 32, 0, '#f2d9bf', 1);
+        circ(-13, -24, 12, '#fbf7ee'); circ(3, -28, 13, '#fbf7ee'); circ(17, -22, 11, '#fbf7ee');
+        eyes(6, 13, 5); nose(17, '#7a5a40', 4, 3); mouth(21); cheeks(20, 21); break;
+      case 'raccoon':
+        both((m) => { circ(m * 34, -38, 14, '#8e8a86', 1); circ(m * 34, -38, 7, '#3a3632'); });
+        face('#b7b2ac'); both((m) => ell(m * 19, -2, 16, 11, m * 0.25, '#3a3632'));
+        both((m) => { circ(m * 19, -2, 5, '#fff'); circ(m * 19, -2, 3.2, '#111'); });
+        ell(0, 20, 18, 13, 0, '#fbf7f2'); nose(12, '#2a1d14', 5, 4); mouth(17); break;
+      case 'hedgehog':
+        for (let i = 0; i <= 12; i++) { const a = -Math.PI - 0.35 + i * (Math.PI + 0.7) / 12; poly([[Math.cos(a - 0.2) * 44, Math.sin(a - 0.2) * 44], [Math.cos(a) * 68, Math.sin(a) * 68], [Math.cos(a + 0.2) * 44, Math.sin(a + 0.2) * 44]], '#8a6a4e', 1); }
+        face('#7a5a40'); ell(0, 14, 38, 33, 0, '#f2dcc0');
+        eyes(6, 15); nose(18, '#2a1d14', 5, 4); cheeks(22, 25); break;
+      case 'deer':
+        both((m) => { ell(m * 44, -28, 10, 20, m * 1.0, '#c98a52', 1); ell(m * 44, -28, 5, 13, m * 1.0, '#f3d3b0'); });
+        face('#c98a52'); circ(-15, -30, 4, '#fff3e0'); circ(0, -37, 4, '#fff3e0'); circ(15, -30, 4, '#fff3e0'); circ(-24, -16, 3, '#fff3e0'); circ(24, -16, 3, '#fff3e0');
+        ell(0, 20, 18, 14, 0, '#f3d9b8'); eyes(-4); nose(13, '#2a1d14', 6, 4.5); cheeks(12, 30); break;
+      case 'squirrel':
+        ell(44, -24, 20, 34, 0.5, '#d98a48', 1);
+        both((m) => poly([[m * 22, -42], [m * 32, -66], [m * 42, -34]], '#c8743a', 1));
+        face('#d98a48'); ell(0, 20, 26, 18, 0, '#fbecd8'); eyes(-6);
+        nose(10, '#2a1d14', 4, 3); poly([[-4, 16], [4, 16], [4, 24], [-4, 24]], '#fff'); cheeks(12, 30); break;
+      case 'duck':
+        ell(0, -54, 5, 11, 0, '#fdfdfb', 1);
+        face('#fdfdfb'); eyes(-10); ell(0, 14, 21, 10, 0, '#f39a2b', 1); cheeks(4, 31); break;
+      case 'horse':
+        both((m) => poly([[m * 14, -44], [m * 26, -66], [m * 36, -36]], '#9a5a32', 1));
+        face('#a8653a'); ell(0, -46, 14, 12, 0, '#4a2e1e'); ell(0, -10, 6, 18, 0, '#fbf3ea');
+        ell(0, 26, 26, 17, 0, '#e9c4a2'); both((m) => ell(m * 9, 27, 3, 4, 0, '#6a3a22')); eyes(-10, 19); break;
+      case 'giraffe':
+        both((m) => { poly([[m * 11, -44], [m * 11, -60], [m * 16, -60], [m * 17, -44]], '#c47a2c'); circ(m * 13.5, -62, 6, '#8a5a32'); ell(m * 46, -22, 14, 7, m * 0.5, '#f4c24f', 1); });
+        face('#f4c24f'); ell(-28, -20, 9, 7, 0.3, '#c47a2c'); ell(26, -26, 8, 10, 0, '#c47a2c'); ell(-32, 18, 6, 8, 0, '#c47a2c'); ell(32, 12, 7, 6, 0, '#c47a2c');
+        ell(0, 23, 22, 15, 0, '#f8dfa0'); both((m) => circ(m * 7, 21, 2.5, '#7a4a22')); eyes(-8); break;
+      case 'hippo':
+        both((m) => { circ(m * 30, -44, 10, '#a49ac0', 1); circ(m * 30, -44, 5, '#f2c3cd'); });
+        face('#a49ac0'); ell(0, 20, 38, 24, 0, '#b8afd2', 1);
+        both((m) => { ell(m * 13, 13, 4.5, 3.5, 0, '#6d6290'); poly([[m * 8, 40], [m * 15, 40], [m * 13, 32], [m * 9, 32]], '#fff'); });
+        eyes(-16, 19); break;
+      case 'alpaca':
+        both((m) => ell(m * 30, -50, 7, 16, m * 0.3, '#fbf3e6', 1));
+        ell(0, 4, 42, 48, 0, '#fbf3e6', 1);
+        circ(-15, -42, 14, '#fbf3e6', true); circ(15, -42, 14, '#fbf3e6', true); circ(0, -48, 16, '#fbf3e6', true);
+        circ(-15, -40, 13, '#fbf3e6'); circ(15, -40, 13, '#fbf3e6'); circ(0, -44, 15, '#fbf3e6');
+        eyes(-2, 16); ell(0, 24, 17, 13, 0, '#f2e0c8'); nose(18, '#7a5a40', 4, 3); mouth(23); cheeks(12, 28); break;
+      case 'crocodile':
+        both((m) => circ(m * 20, -38, 13, '#5aa95a', 1));
+        face('#5aa95a'); both((m) => circ(m * 20, -38, 12, '#5aa95a'));
+        both((m) => { circ(m * 20, -38, 9, '#fff4a8'); ell(m * 20, -38, 2.5, 6, 0, '#222'); });
+        ell(0, 18, 36, 22, 0, '#7fcb7a', 1); both((m) => circ(m * 10, 8, 3, '#2e5a2e'));
+        for (let x = -24; x <= 24; x += 12) poly([[x - 4, 30], [x + 4, 30], [x, 37]], '#fff'); break;
     }
   }
   const faceCache = {};
@@ -657,7 +719,7 @@ textarea { width: 100%; min-height: 128px; resize: vertical; line-height: 1.5; }
   }
 
   /* ---------- 날아가는 동물 ---------- */
-  const fly = $('#fly'), flyImg = $('#flyImg'), flyName = $('#flyName');
+  const fly = $('#fly'), flyImg = $('#flyImg');
   let pos = { x: 0, y: 0 }, tilt = 0;
   const place = () => { fly.style.transform = `translate(${pos.x}px, ${pos.y}px)`; flyImg.style.transform = `rotate(${tilt}deg)`; };
   const appRect = () => app.getBoundingClientRect();
@@ -740,12 +802,13 @@ textarea { width: 100%; min-height: 128px; resize: vertical; line-height: 1.5; }
     pos = { x: c.left - a.left + CX * k, y: c.top - a.top + (H - 6) * k };
     tilt = 0;
     flyImg.src = animal(st.animal).url;
-    flyName.textContent = st.full;
+    flyImg.alt = `${st.full} ${KO[st.animal]}`;
     fly.style.setProperty('--d', `${(2 * pin.rb) / FACE}px`);
     fly.hidden = false; place();
 
     const pr = pinCv.getBoundingClientRect(), pTop = pr.top - a.top, pLeft = pr.left - a.left;
-    msg.textContent = `${st.full} ${KO[st.animal]}가 핀볼 판으로 갑니다…`;
+    showNow(st, '지금 내려가는 친구');
+    msg.textContent = `${st.full} 출발!`;
     await move([{ x: pos.x, y: pTop - 34 }, { x: pLeft + sim.frames[0], y: pTop - 34 }, { x: pLeft + sim.frames[0], y: pTop + sim.frames[1] }], S.move);
     if (pr.top > innerHeight * 0.45) $('#stage').scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
 
@@ -760,12 +823,18 @@ textarea { width: 100%; min-height: 128px; resize: vertical; line-height: 1.5; }
     seat.student = st;
     renderSeat(seat, true);
     addLog(st, seat);
+    showNow(st, `자리 찾음 · ${seatName(seat)}`);
     msg.textContent = `${st.full} → ${seatName(seat)}`;
     busy = false;
     if (!canDraw()) msg.textContent += pool.length ? ' · 빈자리가 더 없습니다.' : ' · 모든 학생이 자리를 찾았습니다.';
     refresh();
   }
 
+  function showNow(st, label) {
+    $('#nowFace').replaceChildren(st ? faceImg(st) : '');
+    $('#nowLabel').textContent = label;
+    $('#nowName').textContent = st ? st.full : '–';
+  }
   function showPicked(st) {
     $('#pickedFace').replaceChildren(faceImg(st));
     $('#pickedName').textContent = `${st.full} (${KO[st.animal]})`;
@@ -792,17 +861,37 @@ textarea { width: 100%; min-height: 128px; resize: vertical; line-height: 1.5; }
     if (short > 0) warn.textContent = `자리가 ${short}석 모자랍니다. ‘사용 안 함’ 자리를 풀거나 인원을 줄여 주세요.`;
   }
 
-  function buildStudents() {
-    const mode = document.querySelector('input[name=mode]:checked').value;
-    const kinds = ANIMALS.map(([k]) => k).sort(() => Math.random() - 0.5);
-    if (mode === 'num') {
-      const n = Math.max(1, Math.min(40, parseInt($('#count').value, 10) || 1));
-      $('#count').value = n;
-      students = Array.from({ length: n }, (_, i) => ({ id: i, label: String(i + 1), full: `${i + 1}번`, animal: kinds[i % kinds.length] }));
-    } else {
-      const names = $('#names').value.split('\n').map((s) => s.trim()).filter(Boolean);
-      students = names.map((nm, i) => ({ id: i, label: [...nm].slice(-2).join(''), full: nm, animal: kinds[i % kinds.length] }));
+  // 붙여넣은 명단 → 이름 목록. 줄바꿈·쉼표·탭(엑셀 칸)으로 나누고, 번호 칸과 "1." 같은 앞 번호는 버린다.
+  function parseNames(text) {
+    const out = [];
+    for (let tok of text.split(/[\r\n,;\t]+/)) {
+      tok = tok.trim().replace(/^\d+\s*[.)번]?\s*/, '').trim();
+      if (!tok || /^\d+$/.test(tok)) continue;
+      const parts = tok.split(/\s+/);
+      if (parts.length > 1 && parts.every((p) => /^[가-힣]{2,4}$/.test(p))) out.push(...parts); else out.push(tok);
     }
+    return out;
+  }
+  function namesStatus() {
+    const names = parseNames($('#names').value), el = $('#namesStatus');
+    if (!names.length) el.textContent = `이름이 비어 있어 번호(1~${Math.min(MAX, +$('#count').value || 1)}번)로 뽑습니다.`;
+    else if (names.length > MAX) el.textContent = `이름 ${names.length}명 중 앞의 ${MAX}명만 넣습니다 (최대 ${MAX}명).`;
+    else el.textContent = `이름 ${names.length}명을 구슬에 넣습니다.`;
+    $('#count').disabled = names.length > 0;
+    return names;
+  }
+
+  function buildStudents() {
+    const names = namesStatus().slice(0, MAX);
+    const kinds = ANIMALS.map(([k]) => k).sort(() => Math.random() - 0.5);
+    if (!names.length) {
+      const n = Math.max(1, Math.min(MAX, parseInt($('#count').value, 10) || 1));
+      $('#count').value = n;
+      students = Array.from({ length: n }, (_, i) => ({ id: i, label: String(i + 1), full: `${i + 1}번`, animal: kinds[i] }));
+    } else {
+      students = names.map((nm, i) => ({ id: i, label: [...nm].slice(-2).join(''), full: nm, animal: kinds[i] }));
+    }
+    showNow(null, '뽑힌 친구 이름이 여기에 나옵니다');
     pool = students.map((s) => s.id);
     seats.forEach((t) => { t.student = null; renderSeat(t); });
     $('#log').innerHTML = '';
@@ -813,10 +902,18 @@ textarea { width: 100%; min-height: 128px; resize: vertical; line-height: 1.5; }
     refresh();
   }
 
-  document.querySelectorAll('input[name=mode]').forEach((r) => r.addEventListener('change', () => {
-    const num = $('#modeNum').checked;
-    $('#numField').hidden = !num; $('#nameField').hidden = num;
-  }));
+  // 아직 아무도 안 뽑았으면 명단을 바꾸는 즉시 구슬을 다시 넣는다
+  let nt;
+  const onRosterChange = () => {
+    clearTimeout(nt);
+    nt = setTimeout(() => {
+      namesStatus();
+      if (!busy && !seats.some((t) => t.student)) buildStudents();
+      else msg.textContent = '명단이 바뀌었습니다. ‘구슬 다시 넣기’를 누르면 처음부터 다시 뽑습니다.';
+    }, 300);
+  };
+  $('#names').addEventListener('input', onRosterChange);
+  $('#count').addEventListener('input', onRosterChange);
   $('#applyBtn').addEventListener('click', buildStudents);
   $('#drawBtn').addEventListener('click', drawOne);
   $('#autoBtn').addEventListener('click', async () => {
