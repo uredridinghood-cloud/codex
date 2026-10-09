@@ -201,6 +201,7 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
     <div class="controls">
       <button class="btn primary" id="drawBtn">한 명 뽑기</button>
       <button class="btn" id="autoBtn">끝까지 자동</button>
+      <button class="btn" id="instantBtn">결과 한 번에 보기</button>
     </div>
     <div class="speed">
       <span>속도</span>
@@ -225,7 +226,8 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
       <button class="btn" id="applyBtn">구슬 다시 넣기</button>
     </div>
     <div class="field" id="talkSettings" hidden>
-      <label class="field"><span>발표 칸 수 (핀볼 아래 6칸 중)</span>
+      <label class="speed"><input type="checkbox" id="talkSlots" checked> 발표/통과 칸 쓰기 · 끄면 뽑힌 친구가 바로 발표자</label>
+      <label class="field" id="winSlotsField"><span>발표 칸 수 (핀볼 아래 6칸 중)</span>
         <select id="winSlots"><option value="1">1칸 (6명 중 1명꼴)</option><option value="2" selected>2칸 (3명 중 1명꼴)</option><option value="3">3칸 (2명 중 1명꼴)</option><option value="4">4칸</option><option value="5">5칸</option></select></label>
       <label class="field"><span>발표할 인원 · ‘끝까지 자동’은 이만큼 뽑히면 멈춥니다</span><input type="number" id="talkGoal" min="1" max="100" value="3"></label>
       <label class="speed"><input type="checkbox" id="talkRepeat"> 통과한 친구는 구슬에 다시 넣기</label>
@@ -246,7 +248,7 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
     </div>
     <div class="bins" id="talkArea" hidden>
       <div class="bin win"><h3>발표할 친구 <b id="winCount">0</b></h3><div class="chips-list" id="winList"></div></div>
-      <div class="bin"><h3>통과 <b id="loseCount">0</b></h3><div class="chips-list" id="loseList"></div></div>
+      <div class="bin" id="loseBin"><h3>통과 <b id="loseCount">0</b></h3><div class="chips-list" id="loseList"></div></div>
     </div>
   </section>
 
@@ -257,7 +259,8 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
         <li><b>추첨기</b>: 학생마다 동물 얼굴 구슬(30종, 30명까지는 겹치지 않음)이 통 안에서 굴러다니고, 뽑을 때 바람이 불듯 섞인 뒤 아래 구멍으로 한 마리가 나옵니다.</li>
         <li><b>핀볼 판</b>: 울퉁불퉁한 핀에 부딪히며 내려가 아래쪽 칸 6개(분단마다 왼쪽·오른쪽) 중 하나로 들어갑니다.</li>
         <li><b>교실</b>: 교탁이 맨 아래, 그 바로 위가 1줄입니다. 3분단 × 짝꿍 2열 × 5줄 = 30석.</li>
-        <li><b>발표자 뽑기</b>: 핀볼 아래 6칸 중 ‘발표’ 칸(기본 2칸)에 들어가면 당첨, 나머지는 통과입니다. 발표 칸 위치는 뽑을 때마다 섞입니다.</li>
+        <li><b>결과 한 번에 보기</b>: 애니메이션 없이 결과만 바로 보여 줍니다. 자리 뽑기는 남은 학생을 모두 앉히고, 발표자 뽑기는 ‘발표할 인원’이 찰 때까지 뽑습니다.</li>
+        <li><b>발표자 뽑기</b>: 핀볼 아래 6칸 중 ‘발표’ 칸(기본 2칸)에 들어가면 당첨, 나머지는 통과입니다. 발표 칸 위치는 뽑을 때마다 섞입니다. ‘발표/통과 칸 쓰기’를 끄면 핀볼 없이 뽑힌 친구가 바로 발표자가 됩니다.</li>
       </ul>
     </section>
     <section>
@@ -861,6 +864,7 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
   /* ---------- 진행 ---------- */
   const msg = $('#msg');
   const canDraw = () => pool.length > 0 && (mode === 'talk' || emptySeats().length > 0);
+  const slotsOn = () => $('#talkSlots').checked;
   const goalReached = () => mode === 'talk' && talk.win.length >= (+$('#talkGoal').value || 1);
 
   async function drawOne() {
@@ -880,6 +884,7 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
     await new Promise((r) => { const chk = () => (ball.done ? r() : requestAnimationFrame(chk)); chk(); });
     balls = balls.filter((b) => b !== ball);
     showPicked(st);
+    if (mode === 'talk' && !slotsOn()) { await directTalk(st, S); return; }
     await wait(reduced ? 100 : 500);
 
     // 자리 뽑기: 빈자리 중에서 고른다. 발표자 뽑기: 6칸 중 하나를 고른다.
@@ -961,12 +966,7 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
     const tx = br.left - a.left + br.width / 2, ty = br.top - a.top + Math.max(20, br.height / 2);
     await move([{ x: pos.x, y: pos.y - 30 }, { x: tx, y: ty }], S.move * 1.3);
     fly.hidden = true;
-    (win ? talk.win : talk.lose).push(st.id);
-    const chip = document.createElement('span');
-    chip.className = 'kidchip pop';
-    const nm = document.createElement('span'); nm.textContent = st.full;
-    chip.append(faceImg(st), nm);
-    list.appendChild(chip);
+    addChip(st, win);
     if (!win && $('#talkRepeat').checked) {
       pool.push(st.id);
       balls.push({ id: st.id, x: CX, y: CY - R * 0.4, vx: 0, vy: 0, r: ballRadius(pool.length) });
@@ -975,6 +975,72 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
     busy = false;
     if (goalReached()) msg.textContent += ` · 발표자 ${talk.win.length}명을 모두 뽑았습니다.`;
     else if (!canDraw()) msg.textContent += ' · 구슬이 더 없습니다.';
+    refresh();
+  }
+
+  function addChip(st, win) {
+    (win ? talk.win : talk.lose).push(st.id);
+    const chip = document.createElement('span');
+    chip.className = 'kidchip pop';
+    const nm = document.createElement('span'); nm.textContent = st.full;
+    chip.append(faceImg(st), nm);
+    (win ? $('#winList') : $('#loseList')).appendChild(chip);
+  }
+  // 발표/통과 칸을 끈 경우: 뽑힌 친구가 핀볼 없이 바로 발표 상자로 간다
+  async function directTalk(st, S) {
+    const a = appRect(), c = cv.getBoundingClientRect(), k = c.width / W;
+    pos = { x: c.left - a.left + CX * k, y: c.top - a.top + (H - 6) * k };
+    tilt = 0; sq = { x: 1, y: 1 };
+    flyImg.src = animal(st.animal).url; flyImg.alt = st.full;
+    fly.style.setProperty('--d', '52px');
+    fly.hidden = false; place();
+    showNow(st, '발표!', true);
+    msg.textContent = `${st.full} 발표!`;
+    const br = $('#winList').getBoundingClientRect();
+    if (br.top > innerHeight * 0.7) $('#stage').scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+    const a2 = appRect(), br2 = $('#winList').getBoundingClientRect();
+    await move([{ x: pos.x, y: pos.y + 30 }, { x: br2.left - a2.left + br2.width / 2, y: br2.top - a2.top + Math.max(20, br2.height / 2) }], S.move * 1.3);
+    await tween(260, (t) => { const q = Math.sin(Math.PI * t); sq = { x: 1 + 0.2 * q, y: 1 - 0.24 * q }; });
+    sq = { x: 1, y: 1 };
+    fly.hidden = true;
+    addChip(st, true);
+    busy = false;
+    if (goalReached()) msg.textContent += ` · 발표자 ${talk.win.length}명을 모두 뽑았습니다.`;
+    else if (!canDraw()) msg.textContent += ' · 구슬이 더 없습니다.';
+    refresh();
+  }
+
+  // 결과 한 번에 보기: 같은 규칙(남은 학생·빈자리·칸을 같은 확률로)으로 뽑되 애니메이션은 건너뛴다
+  function instantAll() {
+    if (busy || auto || !canDraw() || goalReached()) return;
+    const take = () => pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
+    const names = [];
+    let i = 0;
+    if (mode === 'seat') {
+      while (canDraw()) {
+        const st = students[take()], free = emptySeats(), seat = free[Math.floor(Math.random() * free.length)];
+        seat.student = st;
+        setTimeout(() => renderSeat(seat, true), (i++) * 60);
+        addLog(st, seat);
+      }
+      showNow(null, '전체 결과');
+      $('#nowName').textContent = `${seats.filter((t) => t.student).length}명 모두 자리를 찾았습니다`;
+      msg.textContent = pool.length ? '빈자리가 더 없습니다.' : '모든 학생이 자리를 찾았습니다.';
+    } else {
+      const k = +$('#winSlots').value;
+      for (let guard = 0; guard < 10000 && canDraw() && !goalReached(); guard++) {
+        const st = students[take()];
+        const win = !slotsOn() || Math.floor(Math.random() * SLOTS) < k;
+        addChip(st, win);
+        if (win) names.push(st.full);
+        else if ($('#talkRepeat').checked) pool.push(st.id);
+      }
+      showNow(null, names.length ? '발표할 친구' : '이번에는 발표자가 없습니다', names.length > 0);
+      $('#nowName').textContent = names.length ? names.join(', ') : '–';
+      msg.textContent = goalReached() ? `발표자 ${talk.win.length}명을 모두 뽑았습니다.` : '구슬이 더 없습니다.';
+    }
+    balls = balls.filter((b) => pool.includes(b.id));
+    $('#pickedName').textContent = '한 번에 보기';
     refresh();
   }
 
@@ -1005,7 +1071,8 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
     $('#loseCount').textContent = talk.lose.length;
     document.querySelectorAll('input[name=mode]').forEach((r) => { r.disabled = busy || auto; });
     $('#drawBtn').disabled = busy || !canDraw();
-    $('#autoBtn').disabled = !auto && (busy || !canDraw());
+    $('#autoBtn').disabled = !auto && (busy || !canDraw() || goalReached());
+    $('#instantBtn').disabled = busy || auto || !canDraw() || goalReached();
     $('#autoBtn').textContent = auto ? '자동 멈추기' : '끝까지 자동';
     $('#applyBtn').disabled = busy;
     const short = mode === 'seat' ? pool.length - free : 0, warn = $('#warn');
@@ -1084,8 +1151,13 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
     const seatMode = mode === 'seat';
     $('#title').textContent = seatMode ? '우리 반 자리 뽑기' : '우리 반 발표자 뽑기';
     $('#sub').textContent = seatMode ? '동물 구슬 추첨 → 핀볼 → 교실 자리. 3분단 · 짝꿍 2열 · 5줄, 모두 30석' : '동물 구슬 추첨 → 핀볼 → 발표 칸에 들어가면 당첨, 아니면 통과';
-    $('#stageStep').textContent = seatMode ? 'Step 2 · 핀볼 → Step 3 · 자리' : 'Step 2 · 핀볼 → 발표 / 통과';
-    $('#stageTitle').textContent = seatMode ? '핀에 통통 튕기며 내려가 자리에 앉습니다' : '노란 발표 칸에 들어가면 당첨!';
+    const direct = !seatMode && !slotsOn();
+    $('#sub').textContent = seatMode ? $('#sub').textContent : direct ? '동물 구슬 추첨 → 뽑힌 친구가 바로 발표' : '동물 구슬 추첨 → 핀볼 → 발표 칸에 들어가면 당첨, 아니면 통과';
+    $('#stageStep').textContent = seatMode ? 'Step 2 · 핀볼 → Step 3 · 자리' : direct ? 'Step 2 · 발표' : 'Step 2 · 핀볼 → 발표 / 통과';
+    $('#stageTitle').textContent = seatMode ? '핀에 통통 튕기며 내려가 자리에 앉습니다' : direct ? '뽑히면 바로 발표!' : '노란 발표 칸에 들어가면 당첨!';
+    pinCv.hidden = direct;
+    $('#winSlotsField').hidden = direct;
+    $('#loseBin').hidden = direct && !talk.lose.length;
     $('#seatArea').hidden = !seatMode; $('#talkArea').hidden = seatMode;
     $('#talkSettings').hidden = seatMode; $('#seatHint').hidden = !seatMode; $('#log').hidden = !seatMode;
     showNow(null, seatMode ? '뽑힌 친구 이름이 여기에 나옵니다' : '발표할 친구 이름이 여기에 나옵니다');
@@ -1103,6 +1175,8 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
     refresh();
   }));
   $('#winSlots').addEventListener('change', () => { shuffleTalkSlots(); if (!busy) buildPin(); });
+  $('#talkSlots').addEventListener('change', () => { if (busy) return; applyMode(); buildPin(); refresh(); });
+  $('#instantBtn').addEventListener('click', instantAll);
   $('#talkGoal').addEventListener('input', refresh);
 
   let rz;
