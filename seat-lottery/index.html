@@ -172,7 +172,7 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
       <h2 id="drumTitle">동물 구슬을 섞고 한 마리씩 뽑습니다</h2>
     </div>
     <canvas id="drum" aria-label="학생 동물 구슬이 들어 있는 추첨기"></canvas>
-    <div class="picked"><span id="pickedFace"><span class="empty">?</span></span><div>방금 뽑힌 친구 <strong id="pickedName">없음</strong></div></div>
+    <div class="picked"><div>방금 뽑힌 친구 <strong id="pickedName">없음</strong></div></div>
     <div class="controls">
       <button class="btn primary" id="drawBtn">한 명 뽑기</button>
       <button class="btn" id="autoBtn">끝까지 자동</button>
@@ -207,7 +207,7 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
   <section class="card stage" id="stage" aria-labelledby="stageTitle">
     <p class="step">Step 2 · 핀볼 → Step 3 · 자리</p>
     <h2 id="stageTitle">핀에 통통 튕기며 내려가 자리에 앉습니다</h2>
-    <div class="now" aria-live="polite"><span id="nowFace"></span><div><div class="label" id="nowLabel">뽑힌 친구 이름이 여기에 나옵니다</div><div class="name" id="nowName">–</div></div></div>
+    <div class="now" aria-live="polite"><div><div class="label" id="nowLabel">뽑힌 친구 이름이 여기에 나옵니다</div><div class="name" id="nowName">–</div></div></div>
     <canvas id="pin" aria-hidden="true"></canvas>
     <div class="seats" id="seats"></div>
     <div class="front"><div class="podium"></div><small>교탁 · 앞쪽</small></div>
@@ -229,7 +229,7 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
         <li>남은 구슬 중 하나가 구멍으로 나온다</li>
         <li>이름은 핀볼 판 위에 크게 고정되고, 캐릭터만 판 위로 옮겨져 떨어진다</li>
         <li>핀에 튕기며 내려가 칸 하나로 들어간다</li>
-        <li>그 칸 아래 자리에 동물과 이름 말풍선이 앉는다</li>
+        <li>그 줄을 따라 데굴데굴 굴러가다 살짝 지나치고, 뒤로 굴러와 멈춘 뒤 자리에 앉는다</li>
       </ol>
     </section>
     <section>
@@ -425,7 +425,7 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
     drawAnimal(c, kind);
     return (faceCache[kind] = { cv, url: cv.toDataURL() });
   }
-  const faceImg = (st) => { const img = new Image(); img.src = animal(st.animal).url; img.alt = KO[st.animal]; return img; };
+  const faceImg = (st) => { const img = new Image(); img.src = animal(st.animal).url; img.alt = st.full; return img; };
 
   let students = [];   // {id, label, full, animal}
   let pool = [];       // 추첨기 안에 남은 학생 id
@@ -441,7 +441,8 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
 
   /* ---------- 교실 자리 (교탁이 아래, 1줄이 교탁 바로 앞) ---------- */
   const seatsEl = $('#seats');
-  for (let b = 0; b < BUNDAN; b++) {
+  for (let vis = 0; vis < BUNDAN; vis++) {
+    const b = BUNDAN - 1 - vis;
     const wrap = document.createElement('div');
     wrap.className = 'bundan';
     const grid = document.createElement('div');
@@ -451,7 +452,7 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
       el.className = 'seat';
       el.type = 'button';
       el.id = `seat-${b}-${r}-${s}`;
-      const seat = { b, r, s, col: b * SIDES + s, el, off: false, student: null };
+      const seat = { b, r, s, col: vis * SIDES + s, el, off: false, student: null };
       el.addEventListener('click', () => {
         if (busy || seat.student) return;
         seat.off = !seat.off;
@@ -720,8 +721,8 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
 
   /* ---------- 날아가는 동물 ---------- */
   const fly = $('#fly'), flyImg = $('#flyImg');
-  let pos = { x: 0, y: 0 }, tilt = 0;
-  const place = () => { fly.style.transform = `translate(${pos.x}px, ${pos.y}px)`; flyImg.style.transform = `rotate(${tilt}deg)`; };
+  let pos = { x: 0, y: 0 }, tilt = 0, sq = { x: 1, y: 1 };
+  const place = () => { fly.style.transform = `translate(${pos.x}px, ${pos.y}px)`; flyImg.style.transform = `scale(${sq.x}, ${sq.y}) rotate(${tilt}deg)`; };
   const appRect = () => app.getBoundingClientRect();
   function move(points, speed) {
     if (reduced) speed *= 2.5;
@@ -761,6 +762,30 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
     });
   }
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  const tween = (ms, fn) => new Promise((done) => {
+    const t0 = performance.now(), T = reduced ? ms * 0.4 : ms;
+    const tick = (now) => { const t = Math.min(1, (now - t0) / T); fn(t); place(); if (t < 1) requestAnimationFrame(tick); else done(); };
+    requestAnimationFrame(tick);
+  });
+  const easeOut = (t) => 1 - Math.pow(1 - t, 3), easeInOut = (t) => 0.5 - Math.cos(Math.PI * t) / 2;
+
+  // 자리까지 데굴데굴: 굴러가다 살짝 지나치고, 뒤로 굴러와 멈춘 뒤 콩 내려앉기.
+  // 회전량은 굴러간 거리에 맞추되, 도착하면 얼굴이 똑바로 서도록 한 바퀴 단위로 맞춘다.
+  async function rollTo(x, y1, S) {
+    const y0 = pos.y, d = Math.max(1, y1 - y0);
+    const r = (parseFloat(fly.style.getPropertyValue('--d')) * FACE) / 2;
+    const turns = Math.max(1, Math.round(d / (2 * Math.PI * r)));
+    const degPerPx = (360 * turns) / d, over = Math.min(28, 12 + d * 0.06);
+    const at = (y) => { pos = { x, y }; tilt = (y - y0) * degPerPx; };
+    tilt = 0;
+    await tween(Math.max(900, (d / S.seat) * 1300), (t) => at(y0 + (d + over) * easeOut(t)));
+    await tween(480, (t) => at(y1 + over - (over + 6) * easeInOut(t)));
+    await tween(300, (t) => at(y1 - 6 + 6 * easeOut(t)));
+    tilt = 0;
+    await tween(260, (t) => { const k = Math.sin(Math.PI * t); sq = { x: 1 + 0.18 * k, y: 1 - 0.22 * k }; });
+    await tween(320, (t) => { const k = Math.sin(Math.PI * t); pos = { x, y: y1 - 16 * k }; sq = { x: 1 - 0.06 * k, y: 1 + 0.08 * k }; });
+    sq = { x: 1, y: 1 };
+  }
 
   /* ---------- 진행 ---------- */
   const msg = $('#msg');
@@ -802,7 +827,7 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
     pos = { x: c.left - a.left + CX * k, y: c.top - a.top + (H - 6) * k };
     tilt = 0;
     flyImg.src = animal(st.animal).url;
-    flyImg.alt = `${st.full} ${KO[st.animal]}`;
+    flyImg.alt = st.full;
     fly.style.setProperty('--d', `${(2 * pin.rb) / FACE}px`);
     fly.hidden = false; place();
 
@@ -817,7 +842,9 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
 
     const a2 = appRect(), pr2 = pinCv.getBoundingClientRect(), sr = seat.el.getBoundingClientRect();
     const cx = pr2.left - a2.left + pin.xs[seat.col];
-    await move([{ x: cx, y: pr2.bottom - a2.top + 6 }, { x: cx, y: sr.bottom - a2.top - sr.height * 0.55 }], S.seat);
+    await move([{ x: cx, y: pr2.bottom - a2.top + 6 }], S.seat);
+    msg.textContent = '데굴데굴…';
+    await rollTo(cx, sr.bottom - a2.top - sr.height * 0.55, S);
 
     fly.hidden = true;
     seat.student = st;
@@ -831,13 +858,11 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
   }
 
   function showNow(st, label) {
-    $('#nowFace').replaceChildren(st ? faceImg(st) : '');
     $('#nowLabel').textContent = label;
     $('#nowName').textContent = st ? st.full : '–';
   }
   function showPicked(st) {
-    $('#pickedFace').replaceChildren(faceImg(st));
-    $('#pickedName').textContent = `${st.full} (${KO[st.animal]})`;
+    $('#pickedName').textContent = st.full;
   }
   function addLog(st, seat) {
     const li = document.createElement('li');
@@ -895,7 +920,6 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
     pool = students.map((s) => s.id);
     seats.forEach((t) => { t.student = null; renderSeat(t); });
     $('#log').innerHTML = '';
-    $('#pickedFace').innerHTML = '<span class="empty">?</span>';
     $('#pickedName').textContent = '없음';
     msg.textContent = students.length ? `구슬 ${students.length}개를 넣었습니다. ‘한 명 뽑기’를 눌러 주세요.` : '명단이 비어 있습니다.';
     fillDrum();
