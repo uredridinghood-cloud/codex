@@ -217,7 +217,7 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
       <p class="step">준비 · 명단</p>
       <h2 id="setupTitle">구슬에 넣을 학생</h2>
     </div>
-    <label class="field" id="numField"><span>학생 수 (1~30) · 이름을 넣지 않으면 번호로 뽑습니다</span><input type="number" id="count" min="1" max="30" value="30"></label>
+    <label class="field" id="numField"><span>학생 수 (1~100) · 이름을 넣지 않으면 번호로 뽑습니다. 자리 뽑기는 앞의 30명까지</span><input type="number" id="count" min="1" max="100" value="30"></label>
     <label class="field"><span>이름 붙여넣기 (선택) · 한 줄에 한 명, 쉼표나 엑셀 칸도 됩니다</span><textarea id="names" placeholder="예)&#10;김민준&#10;이서연&#10;박도윤"></textarea></label>
     <p class="names-status" id="namesStatus" aria-live="polite"></p>
     <div class="controls" style="justify-content:flex-start">
@@ -226,10 +226,10 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
     <div class="field" id="talkSettings" hidden>
       <label class="field"><span>발표 칸 수 (핀볼 아래 6칸 중)</span>
         <select id="winSlots"><option value="1">1칸 (6명 중 1명꼴)</option><option value="2" selected>2칸 (3명 중 1명꼴)</option><option value="3">3칸 (2명 중 1명꼴)</option><option value="4">4칸</option><option value="5">5칸</option></select></label>
-      <label class="field"><span>발표할 인원 · ‘끝까지 자동’은 이만큼 뽑히면 멈춥니다</span><input type="number" id="talkGoal" min="1" max="30" value="3"></label>
+      <label class="field"><span>발표할 인원 · ‘끝까지 자동’은 이만큼 뽑히면 멈춥니다</span><input type="number" id="talkGoal" min="1" max="100" value="3"></label>
       <label class="speed"><input type="checkbox" id="talkRepeat"> 통과한 친구는 구슬에 다시 넣기</label>
     </div>
-    <p class="hint" id="seatHint">학생마다 서로 다른 동물이 하나씩 정해집니다(30종). 뽑기 전에 교실 자리를 누르면 ‘사용 안 함’으로 막을 수 있고, 다시 누르면 풀립니다.</p>
+    <p class="hint" id="seatHint">학생마다 동물이 하나씩 정해지고, 30명까지는 모두 다른 동물입니다. 자리 뽑기는 30석이라 명단이 더 길면 앞의 30명만 들어갑니다. 뽑기 전에 교실 자리를 누르면 ‘사용 안 함’으로 막을 수 있고, 다시 누르면 풀립니다.</p>
     <p class="warn" id="warn" hidden></p>
     <ol class="log" id="log" aria-label="배정 기록"></ol>
   </section>
@@ -253,7 +253,7 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
     <section>
       <h3>화면 구성</h3>
       <ul>
-        <li><b>추첨기</b>: 학생마다 서로 다른 동물 얼굴(최대 30종) 구슬이 통 안에서 굴러다니고, 뽑을 때 바람이 불듯 섞인 뒤 아래 구멍으로 한 마리가 나옵니다.</li>
+        <li><b>추첨기</b>: 학생마다 동물 얼굴 구슬(30종, 30명까지는 겹치지 않음)이 통 안에서 굴러다니고, 뽑을 때 바람이 불듯 섞인 뒤 아래 구멍으로 한 마리가 나옵니다.</li>
         <li><b>핀볼 판</b>: 울퉁불퉁한 핀에 부딪히며 내려가 아래쪽 칸 6개(분단마다 왼쪽·오른쪽) 중 하나로 들어갑니다.</li>
         <li><b>교실</b>: 교탁이 맨 아래, 그 바로 위가 1줄입니다. 3분단 × 짝꿍 2열 × 5줄 = 30석.</li>
         <li><b>발표자 뽑기</b>: 핀볼 아래 6칸 중 ‘발표’ 칸(기본 2칸)에 들어가면 당첨, 나머지는 통과입니다. 발표 칸 위치는 뽑을 때마다 섞입니다.</li>
@@ -305,7 +305,8 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
     ['duck', '오리'], ['horse', '말'], ['giraffe', '기린'], ['hippo', '하마'],
     ['alpaca', '알파카'], ['crocodile', '악어'],
   ];
-  const MAX = ANIMALS.length; // 30명, 동물이 겹치지 않는 최대 인원
+  const MAX = 100;             // 명단 최대 인원 (발표자 뽑기)
+  const MAX_SEAT = 30;         // 자리 뽑기 최대 인원 = 30석
   const KO = Object.fromEntries(ANIMALS);
   const EXT = 78;                // 그림 반경 (얼굴 반경은 50)
   const FACE = 50 / EXT;         // 이미지 크기 대비 얼굴 지름 비율
@@ -547,7 +548,7 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
     const r = ballRadius(balls.length);
     balls.forEach((b) => { b.r = r; });
   }
-  const ballRadius = (n) => Math.max(10, Math.min(R * 0.18, Math.sqrt(0.36 * R * R / Math.max(n, 1))));
+  const ballRadius = (n) => Math.max(6, Math.min(R * 0.18, Math.sqrt(0.36 * R * R / Math.max(n, 1))));
   function fillDrum() {
     const r = ballRadius(pool.length);
     balls = pool.map((id) => {
@@ -606,7 +607,8 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
   function drawBall(b) {
     const st = students[b.id], s = (2 * b.r) / FACE;
     ctx.drawImage(animal(st.animal).cv, b.x - s / 2, b.y - s / 2, s, s);
-    // 이름표
+    // 이름표 (구슬이 너무 작으면 생략)
+    if (b.r < 9) return;
     const t = st.label, fs = Math.max(8, b.r * (t.length <= 2 ? 0.55 : 0.45));
     ctx.font = `700 ${fs}px "IBM Plex Sans KR", "Apple SD Gothic Neo", sans-serif`;
     const w = ctx.measureText(t).width + fs * 0.7, h = fs * 1.3, y = b.y + b.r * 0.78;
@@ -1006,8 +1008,10 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
     $('#autoBtn').textContent = auto ? '자동 멈추기' : '끝까지 자동';
     $('#applyBtn').disabled = busy;
     const short = mode === 'seat' ? pool.length - free : 0, warn = $('#warn');
-    warn.hidden = short <= 0;
-    if (short > 0) warn.textContent = `자리가 ${short}석 모자랍니다. ‘사용 안 함’ 자리를 풀거나 인원을 줄여 주세요.`;
+    const over = mode === 'seat' && students.length > MAX_SEAT;
+    warn.hidden = short <= 0 && !over;
+    if (over) warn.textContent = `자리 뽑기는 ${MAX_SEAT}석이라 명단 ${students.length}명 중 앞의 ${MAX_SEAT}명만 구슬에 넣었습니다. 전체는 발표자 뽑기에서 쓸 수 있습니다.`;
+    else if (short > 0) warn.textContent = `자리가 ${short}석 모자랍니다. ‘사용 안 함’ 자리를 풀거나 인원을 줄여 주세요.`;
   }
 
   // 붙여넣은 명단 → 이름 목록. 줄바꿈·쉼표·탭(엑셀 칸)으로 나누고, 번호 칸과 "1." 같은 앞 번호는 버린다.
@@ -1025,7 +1029,7 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
     const names = parseNames($('#names').value), el = $('#namesStatus');
     if (!names.length) el.textContent = `이름이 비어 있어 번호(1~${Math.min(MAX, +$('#count').value || 1)}번)로 뽑습니다.`;
     else if (names.length > MAX) el.textContent = `이름 ${names.length}명 중 앞의 ${MAX}명만 넣습니다 (최대 ${MAX}명).`;
-    else el.textContent = `이름 ${names.length}명을 구슬에 넣습니다.`;
+    else el.textContent = `이름 ${names.length}명을 구슬에 넣습니다.` + (names.length > MAX_SEAT ? ` 자리 뽑기에는 앞의 ${MAX_SEAT}명만 들어갑니다.` : '');
     $('#count').disabled = names.length > 0;
     return names;
   }
@@ -1036,12 +1040,12 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
     if (!names.length) {
       const n = Math.max(1, Math.min(MAX, parseInt($('#count').value, 10) || 1));
       $('#count').value = n;
-      students = Array.from({ length: n }, (_, i) => ({ id: i, label: String(i + 1), full: `${i + 1}번`, animal: kinds[i] }));
+      students = Array.from({ length: n }, (_, i) => ({ id: i, label: String(i + 1), full: `${i + 1}번`, animal: kinds[i % kinds.length] }));
     } else {
-      students = names.map((nm, i) => ({ id: i, label: [...nm].slice(-2).join(''), full: nm, animal: kinds[i] }));
+      students = names.map((nm, i) => ({ id: i, label: [...nm].slice(-2).join(''), full: nm, animal: kinds[i % kinds.length] }));
     }
     showNow(null, '뽑힌 친구 이름이 여기에 나옵니다');
-    pools.seat = students.map((s) => s.id);
+    pools.seat = students.filter((s) => s.id < MAX_SEAT).map((s) => s.id);
     pools.talk = students.map((s) => s.id);
     pool = pools[mode];
     talk.win = []; talk.lose = [];
