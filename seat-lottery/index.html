@@ -87,7 +87,7 @@ button { font: inherit; cursor: pointer; }
 .setup { grid-area: setup; display: grid; gap: 12px; align-content: start; }
 .field { display: grid; gap: 6px; }
 .field span { font-size: 13px; color: var(--chalk-dim); }
-input[type=number], textarea { font: inherit; color: var(--chalk); background: var(--board-deep); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+input[type=number], textarea, select { font: inherit; color: var(--chalk); background: var(--board-deep); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
 input[type=number] { width: 110px; font-family: var(--f-mono); }
 textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
 .hint { margin: 0; font-size: 13px; color: var(--chalk-dim); }
@@ -150,19 +150,43 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
 .notes p, .notes ul, .notes ol { margin: 0; color: var(--chalk-dim); font-size: 14px; }
 .notes ul, .notes ol { padding-left: 1.2em; display: grid; gap: 3px; }
 .notes b { color: var(--chalk); font-weight: 600; }
-@media (prefers-reduced-motion: reduce) { .seat.pop .kid { animation: none; } }
+.head-right { display: grid; gap: 8px; justify-items: end; }
+.seg.modes label { font-size: 16px; padding: 8px 18px; }
+.seg.modes label:has(input:checked) { background: var(--accent); color: var(--accent-ink); }
+.now.win { background: var(--accent); }
+.now.win .label, .now.win .name { color: var(--accent-ink); }
+.bins { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 10px; }
+.bin { border: 1.5px dashed var(--line); border-radius: 12px; padding: 10px 12px; min-height: 140px; min-width: 0; }
+.bin.win { border: 2px solid var(--accent); background: rgba(243,211,107,.07); }
+.bin h3 { margin: 0 0 8px; font-family: var(--f-display); font-weight: 400; font-size: 19px; color: var(--chalk-dim); }
+.bin.win h3 { color: var(--accent); }
+.chips-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.kidchip { display: inline-flex; align-items: center; gap: 4px; background: var(--bubble); color: var(--desk-ink); border-radius: 999px; padding: 2px 12px 2px 2px; font-weight: 700; font-size: 14px; max-width: 100%; }
+.kidchip img { width: 30px; height: 30px; flex: none; }
+.bin.win .kidchip { font-size: 18px; }
+.bin.win .kidchip img { width: 42px; height: 42px; }
+.kidchip.pop { animation: chipIn .6s ease-out; }
+@keyframes chipIn { 0% { transform: scale(.3); opacity: 0; } 60% { transform: scale(1.15); opacity: 1; } 100% { transform: none; } }
+@media (max-width: 760px) { .head-right { justify-items: start; } }
+@media (prefers-reduced-motion: reduce) { .seat.pop .kid, .kidchip.pop { animation: none; } }
 </style>
 
 <div class="app" id="app">
   <header>
     <div>
-      <h1>우리 반 자리 뽑기</h1>
-      <p class="sub">동물 구슬 추첨 → 핀볼 → 교실 자리. 3분단 · 짝꿍 2열 · 5줄, 모두 30석</p>
+      <h1 id="title">우리 반 자리 뽑기</h1>
+      <p class="sub" id="sub">동물 구슬 추첨 → 핀볼 → 교실 자리. 3분단 · 짝꿍 2열 · 5줄, 모두 30석</p>
     </div>
-    <div class="chips" aria-live="polite">
-      <span class="chip">남은 구슬 <b id="leftBalls">0</b></span>
-      <span class="chip">빈 자리 <b id="leftSeats">0</b></span>
-      <span class="chip">배정 <b id="doneCount">0</b></span>
+    <div class="head-right">
+      <div class="seg modes" role="radiogroup" aria-label="모드">
+        <label><input type="radio" name="mode" value="seat" id="modeSeat" checked> 자리 뽑기</label>
+        <label><input type="radio" name="mode" value="talk" id="modeTalk"> 발표자 뽑기</label>
+      </div>
+      <div class="chips" aria-live="polite">
+        <span class="chip">남은 구슬 <b id="leftBalls">0</b></span>
+        <span class="chip"><span id="chipBLabel">빈 자리</span> <b id="leftSeats">0</b></span>
+        <span class="chip"><span id="chipCLabel">배정</span> <b id="doneCount">0</b></span>
+      </div>
     </div>
   </header>
 
@@ -199,18 +223,30 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
     <div class="controls" style="justify-content:flex-start">
       <button class="btn" id="applyBtn">구슬 다시 넣기</button>
     </div>
-    <p class="hint">학생마다 서로 다른 동물이 하나씩 정해집니다(30종). 뽑기 전에 교실 자리를 누르면 ‘사용 안 함’으로 막을 수 있고, 다시 누르면 풀립니다.</p>
+    <div class="field" id="talkSettings" hidden>
+      <label class="field"><span>발표 칸 수 (핀볼 아래 6칸 중)</span>
+        <select id="winSlots"><option value="1">1칸 (6명 중 1명꼴)</option><option value="2" selected>2칸 (3명 중 1명꼴)</option><option value="3">3칸 (2명 중 1명꼴)</option><option value="4">4칸</option><option value="5">5칸</option></select></label>
+      <label class="field"><span>발표할 인원 · ‘끝까지 자동’은 이만큼 뽑히면 멈춥니다</span><input type="number" id="talkGoal" min="1" max="30" value="3"></label>
+      <label class="speed"><input type="checkbox" id="talkRepeat"> 통과한 친구는 구슬에 다시 넣기</label>
+    </div>
+    <p class="hint" id="seatHint">학생마다 서로 다른 동물이 하나씩 정해집니다(30종). 뽑기 전에 교실 자리를 누르면 ‘사용 안 함’으로 막을 수 있고, 다시 누르면 풀립니다.</p>
     <p class="warn" id="warn" hidden></p>
     <ol class="log" id="log" aria-label="배정 기록"></ol>
   </section>
 
   <section class="card stage" id="stage" aria-labelledby="stageTitle">
-    <p class="step">Step 2 · 핀볼 → Step 3 · 자리</p>
+    <p class="step" id="stageStep">Step 2 · 핀볼 → Step 3 · 자리</p>
     <h2 id="stageTitle">핀에 통통 튕기며 내려가 자리에 앉습니다</h2>
     <div class="now" aria-live="polite"><div><div class="label" id="nowLabel">뽑힌 친구 이름이 여기에 나옵니다</div><div class="name" id="nowName">–</div></div></div>
     <canvas id="pin" aria-hidden="true"></canvas>
-    <div class="seats" id="seats"></div>
-    <div class="front"><div class="podium"></div><small>교탁 · 앞쪽</small></div>
+    <div id="seatArea">
+      <div class="seats" id="seats"></div>
+      <div class="front"><div class="podium"></div><small>교탁 · 앞쪽</small></div>
+    </div>
+    <div class="bins" id="talkArea" hidden>
+      <div class="bin win"><h3>발표할 친구 <b id="winCount">0</b></h3><div class="chips-list" id="winList"></div></div>
+      <div class="bin"><h3>통과 <b id="loseCount">0</b></h3><div class="chips-list" id="loseList"></div></div>
+    </div>
   </section>
 
   <section class="card notes" aria-label="설계 메모">
@@ -220,6 +256,7 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
         <li><b>추첨기</b>: 학생마다 서로 다른 동물 얼굴(최대 30종) 구슬이 통 안에서 굴러다니고, 뽑을 때 바람이 불듯 섞인 뒤 아래 구멍으로 한 마리가 나옵니다.</li>
         <li><b>핀볼 판</b>: 울퉁불퉁한 핀에 부딪히며 내려가 아래쪽 칸 6개(분단마다 왼쪽·오른쪽) 중 하나로 들어갑니다.</li>
         <li><b>교실</b>: 교탁이 맨 아래, 그 바로 위가 1줄입니다. 3분단 × 짝꿍 2열 × 5줄 = 30석.</li>
+        <li><b>발표자 뽑기</b>: 핀볼 아래 6칸 중 ‘발표’ 칸(기본 2칸)에 들어가면 당첨, 나머지는 통과입니다. 발표 칸 위치는 뽑을 때마다 섞입니다.</li>
       </ul>
     </section>
     <section>
@@ -234,7 +271,7 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
     </section>
     <section>
       <h3>공정하게 정하는 방법</h3>
-      <p>학생은 남은 구슬 중에서, 자리는 남은 빈자리 중에서 똑같은 확률로 고릅니다. 그다음 핀볼을 여러 번 미리 굴려 보고 그 자리 칸으로 들어가는 실제 궤적을 보여 줍니다. 그래서 이미 찬 자리로 가거나 가운데 자리만 자주 걸리는 일이 없습니다.</p>
+      <p>학생은 남은 구슬 중에서, 자리는 남은 빈자리 중에서 똑같은 확률로 고릅니다. 그다음 핀볼을 여러 번 미리 굴려 보고 그 자리 칸으로 들어가는 실제 궤적을 보여 줍니다. 그래서 이미 찬 자리로 가거나 가운데 자리만 자주 걸리는 일이 없습니다. 발표자 뽑기에서는 6칸 중 하나를 같은 확률로 고르므로, 발표 칸이 2개면 3명 중 1명꼴로 당첨됩니다.</p>
     </section>
     <section>
       <h3>다음에 정할 것</h3>
@@ -428,7 +465,11 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
   const faceImg = (st) => { const img = new Image(); img.src = animal(st.animal).url; img.alt = st.full; return img; };
 
   let students = [];   // {id, label, full, animal}
-  let pool = [];       // 추첨기 안에 남은 학생 id
+  let pool = [];       // 지금 모드의 추첨기 안에 남은 학생 id
+  let mode = 'seat';   // 'seat' 자리 뽑기 | 'talk' 발표자 뽑기
+  const pools = { seat: [], talk: [] };
+  const SLOTS = 6;
+  const talk = { win: [], lose: [], labels: [] };
   const seats = [];    // {b, r, s, col, el, off, student}
   let busy = false, auto = false;
 
@@ -621,7 +662,7 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
     const PW = rect.width, PH = rect.height;
     pinCv.width = Math.round(PW * dpr); pinCv.height = Math.round(PH * dpr);
     pctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const xs = colCenters(rect);
+    const xs = mode === 'seat' ? colCenters(rect) : Array.from({ length: SLOTS }, (_, i) => PW * (i + 0.5) / SLOTS);
     const divs = xs.slice(1).map((x, i) => (xs[i] + x) / 2);
     const bounds = [0, ...divs, PW];
     let slotMin = Infinity;
@@ -643,7 +684,14 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
         pegs.push({ x, y: top + j * rowGap, r: pegR * (j % 3 === 1 ? 1.5 : 1), c: PEG_COLORS[(i + j) % PEG_COLORS.length] });
       }
     }
-    pin = { PW, PH, xs, divs, divTop, rb, pegs, flash: pegs.map(() => 0), left: rect.left, top: rect.top };
+    pin = { PW, PH, xs, divs, bounds, divTop, rb, pegs, flash: pegs.map(() => 0), parts: [], lit: null, left: rect.left, top: rect.top };
+  }
+  function shuffleTalkSlots() {
+    const k = +$('#winSlots').value;
+    talk.labels = Array.from({ length: SLOTS }, (_, i) => (i < k ? 'win' : 'lose')).sort(() => Math.random() - 0.5);
+  }
+  function confetti(x, y) {
+    for (let i = 0; i < 70; i++) pin.parts.push({ x, y, vx: (Math.random() - 0.5) * 420, vy: -120 - Math.random() * 460, rot: Math.random() * 6, vr: (Math.random() - 0.5) * 14, c: PEG_COLORS[i % PEG_COLORS.length], life: 1 });
   }
   function colAt(x) { let c = 0; for (const d of pin.divs) if (x > d) c++; return c; }
 
@@ -703,8 +751,28 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
       pctx.beginPath(); pctx.arc(p.x - p.r * 0.3, p.y - p.r * 0.35, p.r * 0.35, 0, Math.PI * 2);
       pctx.fillStyle = 'rgba(255,255,255,.6)'; pctx.fill();
     });
+    if (mode === 'talk') {
+      // 칸 바닥: 발표 칸은 노란색, 통과 칸은 어둡게
+      talk.labels.forEach((lb, i) => {
+        const x0 = pin.bounds[i], x1 = pin.bounds[i + 1], win = lb === 'win';
+        const lit = pin.lit && pin.lit.col === i ? pin.lit.t : 0;
+        pctx.fillStyle = win ? `rgba(243,211,107,${0.22 + 0.5 * lit})` : `rgba(255,255,255,${0.04 + 0.12 * lit})`;
+        pctx.fillRect(x0 + 2, divTop, x1 - x0 - 4, PH - divTop);
+        pctx.fillStyle = win ? '#f3d36b' : '#a3b8ab';
+        pctx.font = `${win ? 700 : 600} ${win ? 16 : 13}px "Jua", "IBM Plex Sans KR", sans-serif`;
+        pctx.textAlign = 'center'; pctx.textBaseline = 'top';
+        pctx.fillText(win ? '발표' : '통과', (x0 + x1) / 2, divTop + 8);
+      });
+      if (pin.lit) pin.lit.t = Math.max(0.35, pin.lit.t - 0.01);
+    }
     pctx.strokeStyle = '#a3b8ab'; pctx.lineWidth = 4; pctx.lineCap = 'round';
     divs.forEach((x) => { pctx.beginPath(); pctx.moveTo(x, divTop); pctx.lineTo(x, PH); pctx.stroke(); });
+    pin.parts = pin.parts.filter((q) => q.life > 0);
+    pin.parts.forEach((q) => {
+      q.vy += 700 / 60; q.x += q.vx / 60; q.y += q.vy / 60; q.rot += q.vr / 60; q.life -= 0.01;
+      pctx.save(); pctx.translate(q.x, q.y); pctx.rotate(q.rot); pctx.globalAlpha = Math.min(1, q.life * 2);
+      pctx.fillStyle = q.c; pctx.fillRect(-4, -2.5, 8, 5); pctx.restore();
+    });
     pctx.fillStyle = 'rgba(238,242,230,.35)';
     pctx.font = '600 11px "IBM Plex Sans KR", sans-serif'; pctx.textAlign = 'center'; pctx.textBaseline = 'top';
     pctx.fillText('여기서 떨어집니다', PW / 2, 10);
@@ -789,7 +857,8 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
 
   /* ---------- 진행 ---------- */
   const msg = $('#msg');
-  const canDraw = () => pool.length > 0 && emptySeats().length > 0;
+  const canDraw = () => pool.length > 0 && (mode === 'talk' || emptySeats().length > 0);
+  const goalReached = () => mode === 'talk' && talk.win.length >= (+$('#talkGoal').value || 1);
 
   async function drawOne() {
     if (busy || !canDraw()) return;
@@ -810,18 +879,25 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
     showPicked(st);
     await wait(reduced ? 100 : 500);
 
-    // 자리는 빈자리 중에서 고르고, 핀볼을 미리 굴려 그 칸으로 들어가는 궤적을 찾는다
+    // 자리 뽑기: 빈자리 중에서 고른다. 발표자 뽑기: 6칸 중 하나를 고른다.
+    // 그다음 핀볼을 미리 굴려 그 칸으로 들어가는 실제 궤적을 찾는다.
+    if (mode === 'talk') shuffleTalkSlots();
     buildPin();
-    const free = emptySeats();
-    let seat = free[Math.floor(Math.random() * free.length)];
+    const free = mode === 'seat' ? emptySeats() : [];
+    let seat = mode === 'seat' ? free[Math.floor(Math.random() * free.length)] : null;
+    let target = seat ? seat.col : Math.floor(Math.random() * SLOTS);
     let sim = null, backup = null;
     for (let tries = 0; tries < 500 && !sim; tries++) {
       const s = simulate(pin.rb + 4 + Math.random() * (pin.PW - 2 * pin.rb - 8));
       if (!s) continue;
-      if (s.col === seat.col) sim = s;
-      else if (!backup && free.some((t) => t.col === s.col)) backup = s;
+      if (s.col === target) sim = s;
+      else if (!backup && (mode === 'talk' || free.some((t) => t.col === s.col))) backup = s;
     }
-    if (!sim) { sim = backup; const inCol = free.filter((t) => t.col === sim.col); seat = inCol[Math.floor(Math.random() * inCol.length)]; }
+    if (!sim) {
+      sim = backup; target = sim.col;
+      if (seat) { const inCol = free.filter((t) => t.col === sim.col); seat = inCol[Math.floor(Math.random() * inCol.length)]; }
+    }
+    if (mode === 'talk') sim = stopOnFloor(sim);
 
     const a = appRect(), c = cv.getBoundingClientRect(), k = c.width / W;
     pos = { x: c.left - a.left + CX * k, y: c.top - a.top + (H - 6) * k };
@@ -839,6 +915,7 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
 
     msg.textContent = '통통… 어디로 갈까요?';
     await replay(sim, S.pin);
+    if (mode === 'talk') { await finishTalk(st, target, S); return; }
 
     const a2 = appRect(), pr2 = pinCv.getBoundingClientRect(), sr = seat.el.getBoundingClientRect();
     const cx = pr2.left - a2.left + pin.xs[seat.col];
@@ -857,7 +934,49 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
     refresh();
   }
 
-  function showNow(st, label) {
+  // 발표 모드에서는 칸 바닥에 멈추도록 궤적을 자른다
+  function stopOnFloor(sim) {
+    const floor = pin.PH - pin.rb - 3, n = sim.frames.length / 2;
+    let i = 0;
+    while (i < n - 1 && !(sim.frames[i * 2 + 1] >= floor && sim.frames[i * 2 + 1] > pin.divTop)) i++;
+    const frames = sim.frames.slice(0, i * 2 + 2);
+    frames[i * 2 + 1] = floor;
+    return { frames, hits: sim.hits.filter((h) => h.f <= i), col: sim.col };
+  }
+  async function finishTalk(st, col, S) {
+    const win = talk.labels[col] === 'win';
+    await tween(260, (t) => { const k = Math.sin(Math.PI * t); sq = { x: 1 + 0.2 * k, y: 1 - 0.24 * k }; });
+    sq = { x: 1, y: 1 };
+    pin.lit = { col, t: 1 };
+    if (win) confetti(pin.xs[col], pin.divTop + 10);
+    showNow(st, win ? '발표 당첨!' : '통과', win);
+    msg.textContent = win ? `${st.full} 발표 당첨!` : `${st.full} 통과`;
+    if (win) await tween(700, (t) => { const k = Math.sin(Math.PI * t * 3) * (1 - t); tilt = 18 * k; sq = { x: 1 + 0.12 * Math.abs(k), y: 1 + 0.12 * Math.abs(k) }; });
+    tilt = 0; sq = { x: 1, y: 1 };
+    await wait(reduced ? 200 : win ? 600 : 500);
+    const list = win ? $('#winList') : $('#loseList'), a = appRect(), br = list.getBoundingClientRect();
+    const tx = br.left - a.left + br.width / 2, ty = br.top - a.top + Math.max(20, br.height / 2);
+    await move([{ x: pos.x, y: pos.y - 30 }, { x: tx, y: ty }], S.move * 1.3);
+    fly.hidden = true;
+    (win ? talk.win : talk.lose).push(st.id);
+    const chip = document.createElement('span');
+    chip.className = 'kidchip pop';
+    const nm = document.createElement('span'); nm.textContent = st.full;
+    chip.append(faceImg(st), nm);
+    list.appendChild(chip);
+    if (!win && $('#talkRepeat').checked) {
+      pool.push(st.id);
+      balls.push({ id: st.id, x: CX, y: CY - R * 0.4, vx: 0, vy: 0, r: ballRadius(pool.length) });
+      msg.textContent += ' · 구슬에 다시 넣었습니다';
+    }
+    busy = false;
+    if (goalReached()) msg.textContent += ` · 발표자 ${talk.win.length}명을 모두 뽑았습니다.`;
+    else if (!canDraw()) msg.textContent += ' · 구슬이 더 없습니다.';
+    refresh();
+  }
+
+  function showNow(st, label, win = false) {
+    $('.now').classList.toggle('win', win);
     $('#nowLabel').textContent = label;
     $('#nowName').textContent = st ? st.full : '–';
   }
@@ -875,13 +994,18 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
   function refresh() {
     const free = emptySeats().length, done = seats.filter((t) => t.student).length;
     $('#leftBalls').textContent = pool.length;
-    $('#leftSeats').textContent = free;
-    $('#doneCount').textContent = done;
+    $('#chipBLabel').textContent = mode === 'seat' ? '빈 자리' : '발표';
+    $('#chipCLabel').textContent = mode === 'seat' ? '배정' : '통과';
+    $('#leftSeats').textContent = mode === 'seat' ? free : talk.win.length;
+    $('#doneCount').textContent = mode === 'seat' ? done : talk.lose.length;
+    $('#winCount').textContent = talk.win.length;
+    $('#loseCount').textContent = talk.lose.length;
+    document.querySelectorAll('input[name=mode]').forEach((r) => { r.disabled = busy || auto; });
     $('#drawBtn').disabled = busy || !canDraw();
     $('#autoBtn').disabled = !auto && (busy || !canDraw());
     $('#autoBtn').textContent = auto ? '자동 멈추기' : '끝까지 자동';
     $('#applyBtn').disabled = busy;
-    const short = pool.length - free, warn = $('#warn');
+    const short = mode === 'seat' ? pool.length - free : 0, warn = $('#warn');
     warn.hidden = short <= 0;
     if (short > 0) warn.textContent = `자리가 ${short}석 모자랍니다. ‘사용 안 함’ 자리를 풀거나 인원을 줄여 주세요.`;
   }
@@ -917,7 +1041,11 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
       students = names.map((nm, i) => ({ id: i, label: [...nm].slice(-2).join(''), full: nm, animal: kinds[i] }));
     }
     showNow(null, '뽑힌 친구 이름이 여기에 나옵니다');
-    pool = students.map((s) => s.id);
+    pools.seat = students.map((s) => s.id);
+    pools.talk = students.map((s) => s.id);
+    pool = pools[mode];
+    talk.win = []; talk.lose = [];
+    $('#winList').replaceChildren(); $('#loseList').replaceChildren();
     seats.forEach((t) => { t.student = null; renderSeat(t); });
     $('#log').innerHTML = '';
     $('#pickedName').textContent = '없음';
@@ -932,7 +1060,7 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
     clearTimeout(nt);
     nt = setTimeout(() => {
       namesStatus();
-      if (!busy && !seats.some((t) => t.student)) buildStudents();
+      if (!busy && !seats.some((t) => t.student) && !talk.win.length && !talk.lose.length) buildStudents();
       else msg.textContent = '명단이 바뀌었습니다. ‘구슬 다시 넣기’를 누르면 처음부터 다시 뽑습니다.';
     }, 300);
   };
@@ -943,9 +1071,34 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
   $('#autoBtn').addEventListener('click', async () => {
     if (auto) { auto = false; refresh(); return; }
     auto = true; refresh();
-    while (auto && canDraw()) { await drawOne(); if (auto) await wait(sp().gap); }
+    while (auto && canDraw() && !goalReached()) { await drawOne(); if (auto) await wait(sp().gap); }
     auto = false; refresh();
   });
+
+  function applyMode() {
+    const seatMode = mode === 'seat';
+    $('#title').textContent = seatMode ? '우리 반 자리 뽑기' : '우리 반 발표자 뽑기';
+    $('#sub').textContent = seatMode ? '동물 구슬 추첨 → 핀볼 → 교실 자리. 3분단 · 짝꿍 2열 · 5줄, 모두 30석' : '동물 구슬 추첨 → 핀볼 → 발표 칸에 들어가면 당첨, 아니면 통과';
+    $('#stageStep').textContent = seatMode ? 'Step 2 · 핀볼 → Step 3 · 자리' : 'Step 2 · 핀볼 → 발표 / 통과';
+    $('#stageTitle').textContent = seatMode ? '핀에 통통 튕기며 내려가 자리에 앉습니다' : '노란 발표 칸에 들어가면 당첨!';
+    $('#seatArea').hidden = !seatMode; $('#talkArea').hidden = seatMode;
+    $('#talkSettings').hidden = seatMode; $('#seatHint').hidden = !seatMode; $('#log').hidden = !seatMode;
+    showNow(null, seatMode ? '뽑힌 친구 이름이 여기에 나옵니다' : '발표할 친구 이름이 여기에 나옵니다');
+  }
+  document.querySelectorAll('input[name=mode]').forEach((r) => r.addEventListener('change', () => {
+    if (busy) return;
+    pools[mode] = pool;
+    mode = r.value;
+    pool = pools[mode];
+    applyMode();
+    fillDrum();
+    if (mode === 'talk' && !talk.labels.length) shuffleTalkSlots();
+    buildPin();
+    msg.textContent = mode === 'seat' ? '자리 뽑기 모드입니다.' : '발표자 뽑기 모드입니다. ‘한 명 뽑기’를 눌러 주세요.';
+    refresh();
+  }));
+  $('#winSlots').addEventListener('change', () => { shuffleTalkSlots(); if (!busy) buildPin(); });
+  $('#talkGoal').addEventListener('input', refresh);
 
   let rz;
   addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { sizeDrum(); if (!busy) buildPin(); }, 120); });
