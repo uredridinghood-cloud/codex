@@ -4,7 +4,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=IBM+Plex+Sans+KR:wght@400;600;700&family=IBM+Plex+Mono:wght@500;700&display=swap">
 <style>
-/* layout: 위쪽에 추첨기 + 명단, 그 아래로 사다리 → 교실 자리표가 한 줄기로 이어지는 세로 흐름 (칠판 교실 한 가지 톤으로 고정) */
+/* layout: 위쪽에 추첨기 + 명단, 그 아래로 핀볼 판 → 교실 자리(교탁은 맨 아래)가 한 줄기로 이어지는 세로 흐름. 칠판 교실 한 가지 톤으로 고정 */
 :root {
   --board: #1d3b33;
   --board-deep: #16302a;
@@ -17,6 +17,7 @@
   --wood: #cf9d68;
   --wood-deep: #8f6239;
   --desk-ink: #2c1d10;
+  --bubble: #fffaf0;
   --warn: #f2a08f;
   --f-display: "Jua", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
   --f-body: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
@@ -64,9 +65,9 @@ h2 { font-family: var(--f-display); font-weight: 400; font-size: 22px; margin: 0
 .drum-card { grid-area: drum; display: grid; gap: 12px; justify-items: center; }
 .drum-card .head { justify-self: stretch; }
 #drum { width: 100%; max-width: 340px; aspect-ratio: 1 / 1.1; display: block; }
-.picked { display: flex; align-items: center; gap: 10px; color: var(--chalk-dim); min-height: 40px; }
-.picked .big { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--line); }
-.picked .big span { width: 72%; height: 72%; border-radius: 50%; background: rgba(255,255,255,.92); color: #1e2a24; display: grid; place-items: center; font: 700 13px/1 var(--f-mono); }
+.picked { display: flex; align-items: center; gap: 10px; color: var(--chalk-dim); min-height: 52px; }
+.picked img { width: 52px; height: 52px; display: block; }
+.picked .empty { width: 34px; height: 34px; border-radius: 50%; border: 2px dashed var(--line); display: grid; place-items: center; color: var(--chalk-dim); }
 .picked strong { color: var(--chalk); font-size: 17px; }
 .controls { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; align-items: center; }
 button { font: inherit; cursor: pointer; }
@@ -74,15 +75,15 @@ button { font: inherit; cursor: pointer; }
 .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 .btn:disabled { opacity: .45; cursor: not-allowed; }
 .btn:focus-visible, .seat:focus-visible, .seg label:focus-within, textarea:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
-.toggle { display: inline-flex; align-items: center; gap: 6px; color: var(--chalk-dim); font-size: 14px; }
 .msg { min-height: 1.5em; margin: 0; text-align: center; color: var(--chalk); }
+.seg { display: inline-flex; border: 1.5px solid var(--line); border-radius: 10px; overflow: hidden; }
+.seg label { padding: 6px 12px; cursor: pointer; color: var(--chalk-dim); font-size: 14px; }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg label:has(input:checked) { background: var(--line); color: var(--chalk); font-weight: 700; }
+.speed { display: flex; align-items: center; gap: 8px; color: var(--chalk-dim); font-size: 14px; }
 
 /* 명단 */
 .setup { grid-area: setup; display: grid; gap: 12px; align-content: start; }
-.seg { display: inline-flex; border: 1.5px solid var(--line); border-radius: 10px; overflow: hidden; }
-.seg label { padding: 6px 14px; cursor: pointer; color: var(--chalk-dim); }
-.seg input { position: absolute; opacity: 0; pointer-events: none; }
-.seg label:has(input:checked) { background: var(--line); color: var(--chalk); font-weight: 700; }
 .field { display: grid; gap: 6px; }
 .field span { font-size: 13px; color: var(--chalk-dim); }
 input[type=number], textarea { font: inherit; color: var(--chalk); background: var(--board-deep); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
@@ -90,45 +91,53 @@ input[type=number] { width: 110px; font-family: var(--f-mono); }
 textarea { width: 100%; min-height: 128px; resize: vertical; line-height: 1.5; }
 .hint { margin: 0; font-size: 13px; color: var(--chalk-dim); }
 .warn { margin: 0; font-size: 13px; color: var(--warn); }
-.log { margin: 0; padding: 0; list-style: none; max-height: 180px; overflow-y: auto; display: grid; gap: 2px; font-size: 14px; counter-reset: n; border-top: 1px solid var(--line); padding-top: 8px; }
-.log li { display: flex; align-items: center; gap: 8px; counter-increment: n; }
+.log { margin: 0; padding: 0; list-style: none; max-height: 200px; overflow-y: auto; display: grid; gap: 2px; font-size: 14px; counter-reset: n; border-top: 1px solid var(--line); padding-top: 8px; }
+.log li { display: flex; align-items: center; gap: 6px; counter-increment: n; }
 .log li::before { content: counter(n); font-family: var(--f-mono); font-size: 12px; color: var(--chalk-dim); width: 1.6em; text-align: right; font-variant-numeric: tabular-nums; }
-.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--c); flex: none; }
+.log img { width: 24px; height: 24px; flex: none; }
 .log:empty::after { content: "아직 배정된 학생이 없습니다."; color: var(--chalk-dim); }
 
-/* 2·3. 사다리 + 교실 */
+/* 2·3. 핀볼 + 교실 */
 .stage { grid-area: stage; display: grid; gap: 4px; }
-#ladder { width: 100%; height: clamp(170px, 24vw, 240px); display: block; overflow: visible; }
-.front { display: grid; justify-items: center; gap: 2px; margin: 6px 0 10px; }
-.front .podium { width: min(36%, 200px); height: 10px; border-radius: 3px; background: var(--wood-deep); }
-.front small { color: var(--chalk-dim); font-size: 12px; letter-spacing: .06em; }
-.seats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: clamp(8px, 2.8vw, 30px); }
+#pin { width: 100%; height: clamp(280px, 36vw, 380px); display: block; }
+.seats {
+  --img: clamp(36px, 6.4vw, 76px);
+  --desk-h: clamp(16px, 2.1vw, 22px);
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: clamp(8px, 2.8vw, 30px);
+  margin-top: 4px;
+}
 .bundan { display: grid; gap: 6px; align-content: start; min-width: 0; }
-.bundan h3 { margin: 0; text-align: center; font-family: var(--f-display); font-weight: 400; font-size: 15px; color: var(--chalk-dim); }
-.bundan-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 3px; }
+.bundan h3 { margin: 2px 0 0; text-align: center; font-family: var(--f-display); font-weight: 400; font-size: 15px; color: var(--chalk-dim); }
+.bundan-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 3px; }
 .seat {
-  position: relative; min-width: 0; min-height: clamp(38px, 6vw, 54px);
-  border: 0; border-bottom: 4px solid var(--wood-deep); border-radius: 5px 5px 2px 2px;
-  background: var(--wood); color: var(--desk-ink);
-  display: grid; place-items: center; padding: 10px 2px 4px;
-  font-size: clamp(11px, 1.5vw, 14px); line-height: 1.15; text-align: center;
-  word-break: keep-all; overflow-wrap: anywhere;
+  position: relative; min-width: 0; padding: 0; border: 0; background: none; color: var(--desk-ink);
+  height: calc(var(--img) + var(--desk-h) + 14px);
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
 }
-.seat .no { position: absolute; top: 2px; left: 4px; font: 500 9px/1 var(--f-mono); opacity: .55; }
-.seat .who { display: inline-flex; align-items: center; gap: 4px; font-weight: 700; min-width: 0; }
-.seat .who .dot { width: 8px; height: 8px; }
-.seat.off { background: transparent; border: 1.5px dashed var(--line); color: var(--chalk-dim); }
-.seat.off .who { font-weight: 400; font-size: 11px; }
-.seat.pop { animation: pop .5s ease-out; }
-@keyframes pop { 0% { transform: scale(1); } 40% { transform: scale(1.18); box-shadow: 0 0 0 4px var(--accent); } 100% { transform: scale(1); } }
+.kid { display: flex; flex-direction: column; align-items: center; margin-bottom: calc(var(--img) * -0.2); position: relative; z-index: 0; }
+.kid img { width: var(--img); height: var(--img); display: block; }
+.bubble {
+  position: relative; z-index: 2; margin-bottom: calc(var(--img) * -0.1);
+  background: var(--bubble); color: var(--desk-ink); border-radius: 8px; padding: 1px 5px;
+  font-weight: 700; font-size: clamp(9px, 1.25vw, 13px); line-height: 1.35; white-space: nowrap;
+  box-shadow: 0 1px 0 rgba(0,0,0,.3);
+}
+.bubble::after { content: ""; position: absolute; left: 50%; bottom: -4px; margin-left: -4px; border: 4px solid transparent; border-top-color: var(--bubble); border-bottom: 0; }
+.desk {
+  position: relative; z-index: 1; width: 100%; height: var(--desk-h);
+  background: var(--wood); border-bottom: 4px solid var(--wood-deep); border-radius: 4px 4px 2px 2px;
+  display: grid; place-items: center; font: 500 10px/1 var(--f-mono); color: rgba(44,29,16,.55);
+}
+.seat.off .desk { background: transparent; border: 1.5px dashed var(--line); color: var(--chalk-dim); font-family: var(--f-body); }
+.seat.pop .kid { animation: hop .7s ease-out; }
+@keyframes hop { 0% { transform: translateY(-14px) scale(1.15); } 45% { transform: translateY(2px) scale(.95); } 70% { transform: translateY(-4px); } 100% { transform: none; } }
+.front { display: grid; justify-items: center; gap: 2px; margin: 12px 0 2px; }
+.front .podium { width: min(36%, 200px); height: 12px; border-radius: 3px; background: var(--wood-deep); }
+.front small { color: var(--chalk-dim); font-size: 12px; letter-spacing: .06em; }
 
-.trace { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 4; overflow: visible; }
-.fly {
-  position: absolute; left: 0; top: 0; width: 34px; height: 34px; margin: -17px 0 0 -17px; z-index: 5;
-  border-radius: 50%; background: var(--c); display: grid; place-items: center; pointer-events: none;
-  box-shadow: 0 4px 10px rgba(0,0,0,.35), inset -3px -4px 0 rgba(0,0,0,.12);
-}
-.fly span { width: 74%; height: 74%; border-radius: 50%; background: rgba(255,255,255,.93); color: #1e2a24; display: grid; place-items: center; font: 700 11px/1 var(--f-mono); letter-spacing: -.04em; }
+.fly { position: absolute; left: 0; top: 0; width: 0; height: 0; z-index: 5; pointer-events: none; }
+.fly img { position: absolute; width: var(--d); height: var(--d); left: calc(var(--d) / -2); top: calc(var(--d) / -2); filter: drop-shadow(0 3px 4px rgba(0,0,0,.35)); }
+.fly .bubble { position: absolute; left: 0; bottom: calc(var(--d) * 0.36 + 4px); transform: translateX(-50%); font-size: 13px; }
 
 /* 설계 메모 */
 .notes { grid-area: notes; display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); }
@@ -137,14 +146,14 @@ textarea { width: 100%; min-height: 128px; resize: vertical; line-height: 1.5; }
 .notes p, .notes ul, .notes ol { margin: 0; color: var(--chalk-dim); font-size: 14px; }
 .notes ul, .notes ol { padding-left: 1.2em; display: grid; gap: 3px; }
 .notes b { color: var(--chalk); font-weight: 600; }
-@media (prefers-reduced-motion: reduce) { .seat.pop { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .seat.pop .kid { animation: none; } }
 </style>
 
 <div class="app" id="app">
   <header>
     <div>
       <h1>우리 반 자리 뽑기</h1>
-      <p class="sub">구슬 추첨 → 사다리 → 교실 자리. 4분단 · 짝꿍 2열 · 5줄, 모두 40석</p>
+      <p class="sub">동물 구슬 추첨 → 핀볼 → 교실 자리. 4분단 · 짝꿍 2열 · 5줄, 모두 40석</p>
     </div>
     <div class="chips" aria-live="polite">
       <span class="chip">남은 구슬 <b id="leftBalls">0</b></span>
@@ -156,14 +165,21 @@ textarea { width: 100%; min-height: 128px; resize: vertical; line-height: 1.5; }
   <section class="card drum-card" aria-labelledby="drumTitle">
     <div class="head">
       <p class="step">Step 1 · 추첨기</p>
-      <h2 id="drumTitle">구슬을 섞고 한 개씩 뽑습니다</h2>
+      <h2 id="drumTitle">동물 구슬을 섞고 한 마리씩 뽑습니다</h2>
     </div>
-    <canvas id="drum" aria-label="학생 구슬이 들어 있는 추첨기"></canvas>
-    <div class="picked"><div class="big" id="pickedBall"><span>?</span></div><div>방금 뽑힌 구슬 <strong id="pickedName">없음</strong></div></div>
+    <canvas id="drum" aria-label="학생 동물 구슬이 들어 있는 추첨기"></canvas>
+    <div class="picked"><span id="pickedFace"><span class="empty">?</span></span><div>방금 뽑힌 친구 <strong id="pickedName">없음</strong></div></div>
     <div class="controls">
       <button class="btn primary" id="drawBtn">한 명 뽑기</button>
       <button class="btn" id="autoBtn">끝까지 자동</button>
-      <label class="toggle"><input type="checkbox" id="fast"> 빠르게</label>
+    </div>
+    <div class="speed">
+      <span>속도</span>
+      <div class="seg" role="radiogroup" aria-label="속도">
+        <label><input type="radio" name="speed" value="slow" id="speedSlow"> 느리게</label>
+        <label><input type="radio" name="speed" value="normal" id="speedNormal" checked> 보통</label>
+        <label><input type="radio" name="speed" value="fast" id="speedFast"> 빠르게</label>
+      </div>
     </div>
     <p class="msg" id="msg" aria-live="polite">‘한 명 뽑기’를 누르면 구슬이 섞이기 시작합니다.</p>
   </section>
@@ -193,41 +209,41 @@ textarea { width: 100%; min-height: 128px; resize: vertical; line-height: 1.5; }
     <div class="controls" style="justify-content:flex-start">
       <button class="btn" id="applyBtn">구슬 다시 넣기</button>
     </div>
-    <p class="hint">뽑기 전에 교실 자리를 누르면 ‘사용 안 함’으로 막을 수 있습니다. 다시 누르면 풀립니다.</p>
+    <p class="hint">학생마다 동물이 하나씩 정해집니다. 뽑기 전에 교실 자리를 누르면 ‘사용 안 함’으로 막을 수 있고, 다시 누르면 풀립니다.</p>
     <p class="warn" id="warn" hidden></p>
     <ol class="log" id="log" aria-label="배정 기록"></ol>
   </section>
 
   <section class="card stage" id="stage" aria-labelledby="stageTitle">
-    <p class="step">Step 2 · 사다리 → Step 3 · 자리</p>
-    <h2 id="stageTitle">사다리를 타고 내려가 자리에 앉습니다</h2>
-    <svg id="ladder" aria-hidden="true"></svg>
-    <div class="front"><div class="podium"></div><small>교탁 · 앞쪽</small></div>
+    <p class="step">Step 2 · 핀볼 → Step 3 · 자리</p>
+    <h2 id="stageTitle">핀에 통통 튕기며 내려가 자리에 앉습니다</h2>
+    <canvas id="pin" aria-hidden="true"></canvas>
     <div class="seats" id="seats"></div>
+    <div class="front"><div class="podium"></div><small>교탁 · 앞쪽</small></div>
   </section>
 
   <section class="card notes" aria-label="설계 메모">
     <section>
       <h3>화면 구성</h3>
       <ul>
-        <li><b>추첨기</b>: 학생 구슬이 통 안에서 굴러다니고, 뽑을 때 바람이 불듯 섞인 뒤 아래 구멍으로 하나가 나옵니다.</li>
-        <li><b>사다리</b>: 교실의 세로줄 8개(분단마다 왼쪽·오른쪽)와 정확히 맞춰 그려집니다.</li>
-        <li><b>교실</b>: 4분단 × 짝꿍 2열 × 5줄 = 40석. 교탁 쪽이 1줄입니다.</li>
+        <li><b>추첨기</b>: 동물 얼굴 구슬이 통 안에서 굴러다니고, 뽑을 때 바람이 불듯 섞인 뒤 아래 구멍으로 한 마리가 나옵니다.</li>
+        <li><b>핀볼 판</b>: 울퉁불퉁한 핀에 부딪히며 내려가 아래쪽 칸 8개(분단마다 왼쪽·오른쪽) 중 하나로 들어갑니다.</li>
+        <li><b>교실</b>: 교탁이 맨 아래, 그 바로 위가 1줄입니다. 4분단 × 짝꿍 2열 × 5줄 = 40석.</li>
       </ul>
     </section>
     <section>
       <h3>한 번 뽑을 때의 순서</h3>
       <ol>
-        <li>구슬을 섞는다 (약 1.7초)</li>
+        <li>구슬을 섞는다 (보통 속도 약 2.6초)</li>
         <li>남은 구슬 중 하나가 구멍으로 나온다</li>
-        <li>사다리 가로줄을 매번 새로 긋는다</li>
-        <li>구슬이 사다리 꼭대기로 옮겨져 타고 내려간다</li>
-        <li>도착한 세로줄의 자리에 이름이 앉는다</li>
+        <li>핀볼 판 위로 옮겨져 떨어진다</li>
+        <li>핀에 튕기며 내려가 칸 하나로 들어간다</li>
+        <li>그 칸 아래 자리에 동물과 이름 말풍선이 앉는다</li>
       </ol>
     </section>
     <section>
       <h3>공정하게 정하는 방법</h3>
-      <p>구슬은 남은 학생 중에서, 자리는 남은 빈자리 중에서 똑같은 확률로 고릅니다. 사다리는 그 자리로 이어지는 출발점에서 구슬을 떨어뜨리기 때문에, 이미 찬 자리로 가거나 특정 자리가 자주 걸리는 일이 없습니다.</p>
+      <p>학생은 남은 구슬 중에서, 자리는 남은 빈자리 중에서 똑같은 확률로 고릅니다. 그다음 핀볼을 여러 번 미리 굴려 보고 그 자리 칸으로 들어가는 실제 궤적을 보여 줍니다. 그래서 이미 찬 자리로 가거나 가운데 자리만 자주 걸리는 일이 없습니다.</p>
     </section>
     <section>
       <h3>다음에 정할 것</h3>
@@ -240,35 +256,135 @@ textarea { width: 100%; min-height: 128px; resize: vertical; line-height: 1.5; }
     </section>
   </section>
 
-  <svg class="trace" id="trace" aria-hidden="true"><polyline id="tracePath" fill="none" stroke="#f3d36b" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" opacity=".9"/></svg>
-  <div class="fly" id="fly" hidden><span id="flyLabel"></span></div>
+  <div class="fly" id="fly" hidden><span class="bubble" id="flyName"></span><img id="flyImg" alt=""></div>
 </div>
 
 <script>
 (() => {
   const $ = (s) => document.querySelector(s);
   const app = $('#app');
-  const BUNDAN = 4, ROWS = 5, SIDES = 2, COLS = BUNDAN * SIDES, LEVELS = 9;
+  const BUNDAN = 4, ROWS = 5, SIDES = 2, COLS = BUNDAN * SIDES;
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  // 로또 공 색 구간 (1~10 노랑, 11~20 파랑, 21~30 빨강, 31~40 회색, 41~ 초록)
-  const LOTTO = ['#f5c22a', '#5bb8e8', '#f06b6b', '#a7b0ab', '#a8d048'];
-  const lottoColor = (n) => LOTTO[Math.min(4, Math.floor((n - 1) / 10))];
+  /* ---------- 동물 얼굴 ---------- */
+  const ANIMALS = [
+    ['cat', '고양이'], ['dog', '강아지'], ['rabbit', '토끼'], ['bear', '곰'],
+    ['panda', '판다'], ['fox', '여우'], ['pig', '돼지'], ['frog', '개구리'],
+    ['chick', '병아리'], ['koala', '코알라'], ['tiger', '호랑이'], ['mouse', '생쥐'],
+    ['penguin', '펭귄'], ['lion', '사자'], ['monkey', '원숭이'], ['hamster', '햄스터'],
+  ];
+  const KO = Object.fromEntries(ANIMALS);
+  const EXT = 78;                // 그림 반경 (얼굴 반경은 50)
+  const FACE = 50 / EXT;         // 이미지 크기 대비 얼굴 지름 비율
 
-  let students = [];   // {id, label, full, color}
+  function drawAnimal(c, kind) {
+    const OUT = '#3a2a1e';
+    const stroke = () => { c.lineWidth = 3; c.lineJoin = 'round'; c.strokeStyle = OUT; c.stroke(); };
+    const circ = (x, y, r, f, s) => { c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fillStyle = f; c.fill(); if (s) stroke(); };
+    const ell = (x, y, rx, ry, rot, f, s) => { c.beginPath(); c.ellipse(x, y, rx, ry, rot, 0, Math.PI * 2); c.fillStyle = f; c.fill(); if (s) stroke(); };
+    const poly = (pts, f, s) => { c.beginPath(); pts.forEach(([x, y], i) => (i ? c.lineTo(x, y) : c.moveTo(x, y))); c.closePath(); c.fillStyle = f; c.fill(); if (s) stroke(); };
+    const both = (fn) => { fn(-1); fn(1); };
+    const eyes = (y = -2, dx = 17, r = 5.5) => both((m) => { circ(m * dx, y, r, '#1f1712'); circ(m * dx - 1.6, y - 2, r * 0.38, '#fff'); });
+    const cheeks = (y = 14, dx = 29) => both((m) => ell(m * dx, y, 8, 5, 0, 'rgba(255,110,125,.5)'));
+    const mouth = (y = 15) => { c.beginPath(); c.lineWidth = 2.6; c.lineCap = 'round'; c.strokeStyle = OUT; c.arc(-5, y, 5, 0.1, Math.PI - 0.1); c.moveTo(10, y); c.arc(5, y, 5, 0.1, Math.PI - 0.1); c.stroke(); };
+    const nose = (y, col, rx, ry) => ell(0, y, rx, ry, 0, col);
+    const whisk = () => { c.lineWidth = 2; c.strokeStyle = 'rgba(58,42,30,.55)'; both((m) => { c.beginPath(); c.moveTo(m * 30, 8); c.lineTo(m * 48, 3); c.moveTo(m * 30, 14); c.lineTo(m * 48, 17); c.stroke(); }); };
+    const face = (col) => circ(0, 0, 50, col, true);
+    switch (kind) {
+      case 'cat':
+        both((m) => { poly([[m * 46, -16], [m * 40, -62], [m * 10, -44]], '#f6b26b', 1); poly([[m * 38, -26], [m * 36, -50], [m * 20, -42]], '#f7a1a8'); });
+        face('#f6b26b'); eyes(); cheeks(); poly([[-4, 6], [4, 6], [0, 11]], '#e8707a'); mouth(13); whisk(); break;
+      case 'dog':
+        face('#ecc894');
+        both((m) => ell(m * 44, -4, 15, 30, -m * 0.3, '#8b5a3c', 1));
+        ell(0, 18, 20, 15, 0, '#fff3df'); eyes(-6); ell(0, 29, 5, 6, 0, '#f27d8c'); nose(9, '#2a1d14', 7, 5); mouth(15); cheeks(12, 30); break;
+      case 'rabbit':
+        both((m) => { ell(m * 17, -50, 10, 25, m * 0.15, '#fbf7f2', 1); ell(m * 17, -49, 4.5, 17, m * 0.15, '#f7b3bf'); });
+        face('#fbf7f2'); eyes(); cheeks(); nose(8, '#f08fa3', 4.5, 3.5); mouth(13); break;
+      case 'bear':
+        both((m) => { circ(m * 36, -36, 16, '#b07a4f', 1); circ(m * 36, -36, 8, '#e3b98f'); });
+        face('#b07a4f'); ell(0, 16, 21, 15, 0, '#ecd1ad'); eyes(-6); nose(9, '#2a1d14', 7, 5); mouth(15); cheeks(10, 31); break;
+      case 'panda':
+        both((m) => circ(m * 36, -38, 15, '#222', 1));
+        face('#fbfbf8'); both((m) => ell(m * 18, 0, 11, 14, -m * 0.5, '#222'));
+        both((m) => { circ(m * 18, -1, 5, '#fff'); circ(m * 18, -1, 3, '#111'); circ(m * 18 - 1, -2.5, 1.2, '#fff'); });
+        nose(11, '#222', 6, 4.5); mouth(17); cheeks(18, 33); break;
+      case 'fox':
+        both((m) => { poly([[m * 47, -10], [m * 38, -64], [m * 10, -42]], '#f08a3c', 1); poly([[m * 38, -24], [m * 35, -52], [m * 20, -40]], '#5a3420'); });
+        face('#f08a3c'); both((m) => ell(m * 20, 22, 22, 16, m * 0.3, '#fff6ea')); eyes(-6); nose(12, '#2a1d14', 5, 4); mouth(17); cheeks(10, 32); break;
+      case 'pig':
+        both((m) => poly([[m * 44, -20], [m * 42, -58], [m * 14, -44]], '#f7b8c4', 1));
+        face('#f7b8c4'); eyes(-8); ell(0, 13, 17, 12, 0, '#ef95a8'); both((m) => ell(m * 6, 13, 3, 4.5, 0, '#b9566b')); cheeks(14, 34); break;
+      case 'frog':
+        both((m) => circ(m * 24, -36, 15, '#8fd16a', 1));
+        ell(0, 4, 52, 45, 0, '#8fd16a', 1); both((m) => circ(m * 24, -36, 13, '#8fd16a'));
+        both((m) => { circ(m * 24, -38, 10, '#fff'); circ(m * 24, -37, 5.5, '#1f1712'); circ(m * 24 - 1.5, -39, 1.8, '#fff'); });
+        both((m) => circ(m * 6, -8, 2, '#3a5a2a'));
+        c.beginPath(); c.lineWidth = 3; c.strokeStyle = OUT; c.lineCap = 'round'; c.arc(0, 2, 24, 0.2 * Math.PI, 0.8 * Math.PI); c.stroke(); cheeks(16, 32); break;
+      case 'chick':
+        ell(-6, -52, 5, 11, -0.4, '#ffcf2e', 1); ell(5, -54, 5, 12, 0.3, '#ffcf2e', 1);
+        face('#ffd84d'); eyes(-6); poly([[-10, 9], [0, 3], [10, 9], [0, 17]], '#f39a2b', 1); cheeks(12, 30); break;
+      case 'koala':
+        both((m) => { circ(m * 42, -24, 22, '#a9adb5', 1); circ(m * 42, -24, 13, '#efe6ea'); });
+        face('#a9adb5'); eyes(-8, 19); ell(0, 9, 10, 13, 0, '#3a3a44'); cheeks(16, 32); break;
+      case 'tiger':
+        both((m) => { circ(m * 34, -38, 14, '#f5a03a', 1); circ(m * 34, -38, 7, '#fff3dc'); });
+        face('#f5a03a');
+        poly([[-4, -49], [4, -49], [0, -33]], '#3a2a1e');
+        both((m) => { poly([[m * 13, -47], [m * 19, -45], [m * 15, -35]], '#3a2a1e'); poly([[m * 50, -6], [m * 49, 2], [m * 34, -2]], '#3a2a1e'); poly([[m * 47, 12], [m * 45, 20], [m * 33, 14]], '#3a2a1e'); });
+        ell(0, 17, 20, 14, 0, '#fff3dc'); eyes(-8); nose(10, '#e8707a', 5, 4); mouth(15); break;
+      case 'mouse':
+        both((m) => { circ(m * 38, -36, 21, '#c4c7cc', 1); circ(m * 38, -36, 12, '#f7b3bf'); });
+        face('#c4c7cc'); eyes(); nose(9, '#f08fa3', 5, 4); mouth(14); whisk(); cheeks(); break;
+      case 'penguin':
+        face('#2f3b52'); both((m) => circ(m * 15, 6, 25, '#fbfbf8'));
+        eyes(-2, 15); poly([[-8, 11], [8, 11], [0, 21]], '#f39a2b', 1); cheeks(18, 30); break;
+      case 'lion':
+        for (let i = 0; i < 14; i++) { const a = i * Math.PI * 2 / 14; circ(Math.cos(a) * 54, Math.sin(a) * 54, 15, '#c46f28'); }
+        circ(0, 0, 58, '#c46f28');
+        both((m) => circ(m * 32, -38, 11, '#f6c86a', 1));
+        circ(0, 0, 46, '#f6c86a', true); ell(0, 16, 18, 13, 0, '#fff1d0'); eyes(-6); nose(9, '#7a4a2a', 6, 4.5); mouth(14); cheeks(12, 27); break;
+      case 'monkey':
+        both((m) => { circ(m * 48, 0, 14, '#9a6a45', 1); circ(m * 48, 0, 8, '#f0d3ae'); });
+        face('#9a6a45'); both((m) => circ(m * 15, -6, 19, '#f0d3ae')); ell(0, 16, 30, 22, 0, '#f0d3ae');
+        eyes(-6, 15); both((m) => circ(m * 4, 10, 2.2, '#5a3a24')); mouth(17); cheeks(16, 25); break;
+      case 'hamster':
+        both((m) => { circ(m * 32, -40, 12, '#f2c48d', 1); circ(m * 32, -40, 6, '#f7b3bf'); });
+        face('#f2c48d'); ell(0, 20, 40, 26, 0, '#fff7ea'); eyes(-6); nose(6, '#f08fa3', 4, 3); mouth(11); cheeks(14, 31); break;
+    }
+  }
+  const faceCache = {};
+  function animal(kind) {
+    if (faceCache[kind]) return faceCache[kind];
+    const S = 168, cv = document.createElement('canvas');
+    cv.width = cv.height = S;
+    const c = cv.getContext('2d');
+    c.translate(S / 2, S / 2); c.scale(S / 2 / EXT, S / 2 / EXT);
+    drawAnimal(c, kind);
+    return (faceCache[kind] = { cv, url: cv.toDataURL() });
+  }
+  const faceImg = (st) => { const img = new Image(); img.src = animal(st.animal).url; img.alt = KO[st.animal]; return img; };
+
+  let students = [];   // {id, label, full, animal}
   let pool = [];       // 추첨기 안에 남은 학생 id
   const seats = [];    // {b, r, s, col, el, off, student}
   let busy = false, auto = false;
 
-  /* ---------- 교실 자리 ---------- */
+  const SPEEDS = {
+    slow:   { mix: 3400, exit: 1.1, move: 240, pin: 1.6,  seat: 170, gap: 1800 },
+    normal: { mix: 2600, exit: 1.5, move: 330, pin: 1.25, seat: 220, gap: 1300 },
+    fast:   { mix: 1200, exit: 3,   move: 650, pin: 0.85, seat: 450, gap: 500 },
+  };
+  const sp = () => SPEEDS[document.querySelector('input[name=speed]:checked').value];
+
+  /* ---------- 교실 자리 (교탁이 아래, 1줄이 교탁 바로 앞) ---------- */
   const seatsEl = $('#seats');
   for (let b = 0; b < BUNDAN; b++) {
     const wrap = document.createElement('div');
     wrap.className = 'bundan';
-    wrap.innerHTML = `<h3>${b + 1}분단</h3>`;
     const grid = document.createElement('div');
     grid.className = 'bundan-grid';
-    for (let r = 0; r < ROWS; r++) for (let s = 0; s < SIDES; s++) {
+    for (let r = ROWS - 1; r >= 0; r--) for (let s = 0; s < SIDES; s++) {
       const el = document.createElement('button');
       el.className = 'seat';
       el.type = 'button';
@@ -283,25 +399,29 @@ textarea { width: 100%; min-height: 128px; resize: vertical; line-height: 1.5; }
       seats.push(seat);
       grid.appendChild(el);
     }
-    wrap.appendChild(grid);
+    const h = document.createElement('h3');
+    h.textContent = `${b + 1}분단`;
+    wrap.append(grid, h);
     seatsEl.appendChild(wrap);
   }
   const seatName = (t) => `${t.b + 1}분단 ${t.r + 1}째 줄 ${t.s ? '오른쪽' : '왼쪽'}`;
   function renderSeat(t, pop) {
     const el = t.el;
     el.classList.toggle('off', t.off);
-    el.innerHTML = `<span class="no">${t.r + 1}</span>`;
-    const who = document.createElement('span');
-    who.className = 'who';
+    el.replaceChildren();
     if (t.student) {
-      const d = document.createElement('span');
-      d.className = 'dot';
-      d.style.setProperty('--c', t.student.color);
-      who.append(d, t.student.full);
-    } else if (t.off) {
-      who.textContent = '사용 안 함';
+      const kid = document.createElement('span');
+      kid.className = 'kid';
+      const bub = document.createElement('span');
+      bub.className = 'bubble';
+      bub.textContent = t.student.full;
+      kid.append(bub, faceImg(t.student));
+      el.appendChild(kid);
     }
-    el.appendChild(who);
+    const desk = document.createElement('span');
+    desk.className = 'desk';
+    desk.textContent = t.off ? '사용 안 함' : `${t.r + 1}`;
+    el.appendChild(desk);
     el.setAttribute('aria-label', `${seatName(t)}: ${t.student ? t.student.full : t.off ? '사용 안 함' : '빈자리'}`);
     if (pop && !reduced) { el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
   }
@@ -310,7 +430,7 @@ textarea { width: 100%; min-height: 128px; resize: vertical; line-height: 1.5; }
   /* ---------- 추첨기 (캔버스 물리) ---------- */
   const cv = $('#drum'), ctx = cv.getContext('2d');
   let W = 300, H = 330, R = 130, CX = 150, CY = 140;
-  let balls = [], mixing = false, spin = 0, spinV = 0.5;
+  let balls = [], mixing = false, spin = 0, spinV = 0.5, exitSpeed = 1.5;
 
   function sizeDrum() {
     const w = cv.clientWidth || 300, dpr = window.devicePixelRatio || 1;
@@ -323,7 +443,7 @@ textarea { width: 100%; min-height: 128px; resize: vertical; line-height: 1.5; }
     const r = ballRadius(balls.length);
     balls.forEach((b) => { b.r = r; });
   }
-  const ballRadius = (n) => Math.max(8, Math.min(R * 0.17, Math.sqrt(0.38 * R * R / Math.max(n, 1))));
+  const ballRadius = (n) => Math.max(10, Math.min(R * 0.18, Math.sqrt(0.36 * R * R / Math.max(n, 1))));
   function fillDrum() {
     const r = ballRadius(pool.length);
     balls = pool.map((id) => {
@@ -333,26 +453,26 @@ textarea { width: 100%; min-height: 128px; resize: vertical; line-height: 1.5; }
   }
 
   function step(dt) {
-    const G = 5.5 * R, maxV = 5 * R;
-    spinV += ((mixing ? 6 : 0.5) - spinV) * Math.min(1, dt * 3);
+    const G = 5 * R, maxV = 4 * R;
+    spinV += ((mixing ? 4.5 : 0.4) - spinV) * Math.min(1, dt * 2.5);
     spin += spinV * dt;
     for (const b of balls) {
       if (b.exit) {
         const tx = CX, ty = CY + R + b.r;
-        const dx = tx - b.x, dy = ty - b.y, d = Math.hypot(dx, dy), v = 3 * R * dt;
+        const dx = tx - b.x, dy = ty - b.y, d = Math.hypot(dx, dy), v = exitSpeed * R * dt;
         if (d <= v) { b.x = tx; b.y = ty; b.done = true; } else { b.x += dx / d * v; b.y += dy / d * v; }
         continue;
       }
       b.vy += G * dt;
       if (mixing) {
-        b.vx += (Math.random() - 0.5) * 22 * R * dt;
-        b.vy += (Math.random() - 0.5) * 16 * R * dt;
-        if (b.y > CY - R * 0.15) b.vy -= 13 * R * dt; // 아래에서 부는 바람
+        b.vx += (Math.random() - 0.5) * 18 * R * dt;
+        b.vy += (Math.random() - 0.5) * 12 * R * dt;
+        if (b.y > CY - R * 0.15) b.vy -= 11 * R * dt; // 아래에서 부는 바람
       }
-      const damp = 1 - (mixing ? 0.2 : 0.8) * dt;
+      const damp = 1 - (mixing ? 0.3 : 0.9) * dt;
       b.vx *= damp; b.vy *= damp;
-      const sp = Math.hypot(b.vx, b.vy);
-      if (sp > maxV) { b.vx *= maxV / sp; b.vy *= maxV / sp; }
+      const s = Math.hypot(b.vx, b.vy);
+      if (s > maxV) { b.vx *= maxV / s; b.vy *= maxV / s; }
       b.x += b.vx * dt; b.y += b.vy * dt;
       const dx = b.x - CX, dy = b.y - CY, d = Math.hypot(dx, dy) || 1, lim = R - b.r;
       if (d > lim) {
@@ -380,40 +500,36 @@ textarea { width: 100%; min-height: 128px; resize: vertical; line-height: 1.5; }
   }
 
   function drawBall(b) {
-    const st = students[b.id];
-    ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
-    ctx.fillStyle = st.color; ctx.fill();
-    ctx.beginPath(); ctx.arc(b.x, b.y, b.r * 0.72, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(255,255,255,.92)'; ctx.fill();
-    ctx.beginPath(); ctx.ellipse(b.x - b.r * 0.42, b.y - b.r * 0.5, b.r * 0.22, b.r * 0.13, -0.6, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.fill();
-    const t = st.label, fs = t.length <= 2 ? b.r * 0.78 : b.r * 0.46;
-    ctx.fillStyle = '#1e2a24';
-    ctx.font = `700 ${fs}px "IBM Plex Mono", "Apple SD Gothic Neo", sans-serif`;
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(t, b.x, b.y + fs * 0.05);
+    const st = students[b.id], s = (2 * b.r) / FACE;
+    ctx.drawImage(animal(st.animal).cv, b.x - s / 2, b.y - s / 2, s, s);
+    // 이름표
+    const t = st.label, fs = Math.max(8, b.r * (t.length <= 2 ? 0.55 : 0.45));
+    ctx.font = `700 ${fs}px "IBM Plex Sans KR", "Apple SD Gothic Neo", sans-serif`;
+    const w = ctx.measureText(t).width + fs * 0.7, h = fs * 1.3, y = b.y + b.r * 0.78;
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(b.x - w / 2, y - h / 2, w, h, h / 2); else ctx.rect(b.x - w / 2, y - h / 2, w, h);
+    ctx.fillStyle = '#fffaf0'; ctx.fill();
+    ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(58,42,30,.6)'; ctx.stroke();
+    ctx.fillStyle = '#2c1d10'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(t, b.x, y + fs * 0.05);
   }
 
   function drawDrum() {
     ctx.clearRect(0, 0, W, H);
-    const gapA = Math.asin(Math.min(0.9, 18 / R));
-    // 받침대와 배출구
+    const gapA = Math.asin(Math.min(0.9, 20 / R));
     ctx.strokeStyle = '#a3b8ab'; ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(CX - 16, CY + R * Math.cos(gapA) - 2); ctx.lineTo(CX - 16, H - 2);
-    ctx.moveTo(CX + 16, CY + R * Math.cos(gapA) - 2); ctx.lineTo(CX + 16, H - 2);
+    ctx.moveTo(CX - 18, CY + R * Math.cos(gapA) - 2); ctx.lineTo(CX - 18, H - 2);
+    ctx.moveTo(CX + 18, CY + R * Math.cos(gapA) - 2); ctx.lineTo(CX + 18, H - 2);
     ctx.stroke();
-    // 유리통
     const g = ctx.createRadialGradient(CX - R * 0.3, CY - R * 0.35, R * 0.1, CX, CY, R);
     g.addColorStop(0, 'rgba(255,255,255,.10)'); g.addColorStop(1, 'rgba(255,255,255,.025)');
     ctx.beginPath(); ctx.arc(CX, CY, R, 0, Math.PI * 2); ctx.fillStyle = g; ctx.fill();
-    // 회전 날개
     ctx.save(); ctx.translate(CX, CY); ctx.rotate(spin);
     ctx.strokeStyle = 'rgba(238,242,230,.14)'; ctx.lineWidth = 6; ctx.lineCap = 'round';
     for (let i = 0; i < 3; i++) { ctx.rotate(Math.PI * 2 / 3); ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -R * 0.86); ctx.stroke(); }
     ctx.restore();
     balls.forEach(drawBall);
-    // 테두리 (아래쪽은 구멍)
     ctx.strokeStyle = '#eef2e6'; ctx.lineWidth = 3;
     ctx.beginPath(); ctx.arc(CX, CY, R, Math.PI / 2 + gapA, Math.PI / 2 - gapA + Math.PI * 2); ctx.stroke();
     ctx.save(); ctx.translate(CX, CY); ctx.rotate(spin * 0.6);
@@ -423,62 +539,128 @@ textarea { width: 100%; min-height: 128px; resize: vertical; line-height: 1.5; }
     ctx.beginPath(); ctx.arc(CX, CY, 6, 0, Math.PI * 2); ctx.fillStyle = '#eef2e6'; ctx.fill();
   }
 
+  /* ---------- 핀볼 판 ---------- */
+  const pinCv = $('#pin'), pctx = pinCv.getContext('2d');
+  const PEG_COLORS = ['#f5c22a', '#5bb8e8', '#f06b6b', '#a8d048', '#f3a0c8'];
+  const PIN_G = 900, PIN_DT = 1 / 120;
+  let pin = null;
+
+  function colCenters(rect) {
+    const xs = [];
+    for (let c = 0; c < COLS; c++) {
+      const r = seats.find((t) => t.col === c && t.r === 0).el.getBoundingClientRect();
+      xs.push(r.left + r.width / 2 - rect.left);
+    }
+    return xs;
+  }
+  function buildPin() {
+    const rect = pinCv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    const PW = rect.width, PH = rect.height;
+    pinCv.width = Math.round(PW * dpr); pinCv.height = Math.round(PH * dpr);
+    pctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const xs = colCenters(rect);
+    const divs = xs.slice(1).map((x, i) => (xs[i] + x) / 2);
+    const bounds = [0, ...divs, PW];
+    let slotMin = Infinity;
+    for (let i = 0; i < COLS; i++) slotMin = Math.min(slotMin, bounds[i + 1] - bounds[i]);
+    const rb = Math.max(9, Math.min(16, slotMin * 0.3));
+    const pegR = Math.max(4, Math.min(6.5, PW / 160));
+    const divTop = PH - 58;
+    const spacing = Math.max(2 * rb + 2 * pegR + 10, PW / 11);
+    const top = 44, bottom = divTop - 30;
+    const rows = Math.max(5, Math.min(9, Math.round((bottom - top) / (spacing * 0.78)) + 1));
+    const rowGap = (bottom - top) / (rows - 1);
+    const n = Math.floor(PW / spacing), x0 = (PW - (n - 1) * spacing) / 2;
+    const pegs = [];
+    for (let j = 0; j < rows; j++) {
+      const off = j % 2 ? -spacing / 2 : 0;
+      for (let i = 0; i <= n; i++) {
+        const x = x0 + off + i * spacing;
+        if (x - pegR < 2 * rb + 4 || PW - x - pegR < 2 * rb + 4) continue;
+        pegs.push({ x, y: top + j * rowGap, r: pegR * (j % 3 === 1 ? 1.5 : 1), c: PEG_COLORS[(i + j) % PEG_COLORS.length] });
+      }
+    }
+    pin = { PW, PH, xs, divs, divTop, rb, pegs, flash: pegs.map(() => 0), left: rect.left, top: rect.top };
+  }
+  function colAt(x) { let c = 0; for (const d of pin.divs) if (x > d) c++; return c; }
+
+  function simulate(startX) {
+    const { PW, PH, pegs, divs, divTop, rb } = pin;
+    let x = startX, y = -rb, vx = (Math.random() - 0.5) * 60, vy = 30;
+    const frames = [], hits = [];
+    const lastHit = new Map();
+    for (let s = 0; s < 120 * 14; s++) {
+      vy += PIN_G * PIN_DT;
+      vx *= 0.999;
+      const v = Math.hypot(vx, vy); if (v > 650) { vx *= 650 / v; vy *= 650 / v; }
+      x += vx * PIN_DT; y += vy * PIN_DT;
+      if (x < rb) { x = rb; vx = Math.abs(vx) * 0.5; }
+      if (x > PW - rb) { x = PW - rb; vx = -Math.abs(vx) * 0.5; }
+      for (let i = 0; i < pegs.length; i++) {
+        const p = pegs[i], dx = x - p.x, dy = y - p.y, min = rb + p.r, d2 = dx * dx + dy * dy;
+        if (d2 >= min * min) continue;
+        const d = Math.sqrt(d2) || 1, nx = dx / d, ny = dy / d;
+        x = p.x + nx * min; y = p.y + ny * min;
+        const vn = vx * nx + vy * ny;
+        if (vn < 0) { vx -= 1.5 * vn * nx; vy -= 1.5 * vn * ny; vx += (Math.random() - 0.5) * 70; }
+        if (s - (lastHit.get(i) ?? -99) > 12) hits.push({ f: s, i });
+        lastHit.set(i, s);
+      }
+      for (const dvx of divs) {
+        const cy = Math.max(divTop, Math.min(PH + 40, y)), dx = x - dvx, dy = y - cy, min = rb + 2.5, d2 = dx * dx + dy * dy;
+        if (d2 >= min * min) continue;
+        const d = Math.sqrt(d2) || 1, nx = dx / d, ny = dy / d;
+        x = dvx + nx * min; y = cy + ny * min;
+        const vn = vx * nx + vy * ny;
+        if (vn < 0) { vx -= 1.4 * vn * nx; vy -= 1.4 * vn * ny; }
+      }
+      frames.push(x, y);
+      if (y > PH + rb) return { frames, hits, col: colAt(x) };
+    }
+    return null;
+  }
+
+  function drawPin() {
+    if (!pin) return;
+    const { PW, PH, pegs, divs, divTop, flash } = pin;
+    pctx.clearRect(0, 0, PW, PH);
+    pctx.fillStyle = 'rgba(0,0,0,.14)';
+    pctx.beginPath();
+    if (pctx.roundRect) pctx.roundRect(0, 0, PW, PH, 10); else pctx.rect(0, 0, PW, PH);
+    pctx.fill();
+    pegs.forEach((p, i) => {
+      const f = flash[i];
+      if (f > 0) {
+        pctx.beginPath(); pctx.arc(p.x, p.y, p.r + 8 * f, 0, Math.PI * 2);
+        pctx.fillStyle = `rgba(255,250,220,${0.35 * f})`; pctx.fill();
+        flash[i] = Math.max(0, f - 0.04);
+      }
+      pctx.beginPath(); pctx.arc(p.x, p.y, p.r * (1 + 0.35 * f), 0, Math.PI * 2);
+      pctx.fillStyle = p.c; pctx.fill();
+      pctx.beginPath(); pctx.arc(p.x - p.r * 0.3, p.y - p.r * 0.35, p.r * 0.35, 0, Math.PI * 2);
+      pctx.fillStyle = 'rgba(255,255,255,.6)'; pctx.fill();
+    });
+    pctx.strokeStyle = '#a3b8ab'; pctx.lineWidth = 4; pctx.lineCap = 'round';
+    divs.forEach((x) => { pctx.beginPath(); pctx.moveTo(x, divTop); pctx.lineTo(x, PH); pctx.stroke(); });
+    pctx.fillStyle = 'rgba(238,242,230,.35)';
+    pctx.font = '600 11px "IBM Plex Sans KR", sans-serif'; pctx.textAlign = 'center'; pctx.textBaseline = 'top';
+    pctx.fillText('여기서 떨어집니다', PW / 2, 10);
+  }
+
   let lastT = performance.now();
   function loop(now) {
     const dt = Math.min(1 / 30, (now - lastT) / 1000); lastT = now;
     for (let i = 0; i < 3; i++) step(dt / 3);
     drawDrum();
+    drawPin();
     requestAnimationFrame(loop);
   }
 
-  /* ---------- 사다리 ---------- */
-  const ladder = $('#ladder');
-  let rungs = [];
-  function newLadder() {
-    rungs = [];
-    for (let k = 0; k < LEVELS; k++) {
-      const set = new Set();
-      for (let c = 0; c < COLS - 1; c++) if (Math.random() < 0.42) { set.add(c); c++; }
-      rungs.push(set);
-    }
-  }
-  function exitOf(entry) {
-    let c = entry;
-    for (const set of rungs) { if (set.has(c)) c++; else if (set.has(c - 1)) c--; }
-    return c;
-  }
-  function geo() {
-    const a = app.getBoundingClientRect(), s = ladder.getBoundingClientRect();
-    const xs = [];
-    for (let c = 0; c < COLS; c++) {
-      const r = seats.find((t) => t.col === c && t.r === 0).el.getBoundingClientRect();
-      xs.push(r.left + r.width / 2 - a.left);
-    }
-    const top = s.top - a.top, pad = 18;
-    const ys = rungs.map((_, k) => top + pad + (k + 0.5) * (s.height - pad * 2) / LEVELS);
-    return { xs, ys, top, bottom: top + s.height, left: s.left - a.left, w: s.width, h: s.height };
-  }
-  function drawLadder() {
-    const g = geo();
-    ladder.setAttribute('viewBox', `0 0 ${g.w} ${g.h}`);
-    const X = (x) => (x - g.left).toFixed(1), Y = (y) => (y - g.top).toFixed(1);
-    let out = '';
-    g.xs.forEach((x, c) => {
-      out += `<line x1="${X(x)}" y1="6" x2="${X(x)}" y2="${g.h}" stroke="#eef2e6" stroke-opacity=".75" stroke-width="2.5" stroke-linecap="round"/>`;
-      out += `<circle cx="${X(x)}" cy="6" r="4.5" fill="#234338" stroke="#eef2e6" stroke-width="2"/>`;
-    });
-    rungs.forEach((set, k) => set.forEach((c) => {
-      out += `<line x1="${X(g.xs[c])}" y1="${Y(g.ys[k])}" x2="${X(g.xs[c + 1])}" y2="${Y(g.ys[k])}" stroke="#a3b8ab" stroke-width="2.5" stroke-linecap="round"/>`;
-    }));
-    ladder.innerHTML = out;
-  }
-
-  /* ---------- 날아가는 구슬 + 지나간 길 ---------- */
-  const fly = $('#fly'), flyLabel = $('#flyLabel'), tracePath = $('#tracePath');
-  let pos = { x: 0, y: 0 }, trail = [];
-  const place = () => { fly.style.transform = `translate(${pos.x}px, ${pos.y}px)`; };
-  const renderTrace = () => tracePath.setAttribute('points', trail.concat(pos).map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' '));
-  function clearTrace() { trail = []; tracePath.setAttribute('points', ''); }
+  /* ---------- 날아가는 동물 ---------- */
+  const fly = $('#fly'), flyImg = $('#flyImg'), flyName = $('#flyName');
+  let pos = { x: 0, y: 0 }, tilt = 0;
+  const place = () => { fly.style.transform = `translate(${pos.x}px, ${pos.y}px)`; flyImg.style.transform = `rotate(${tilt}deg)`; };
+  const appRect = () => app.getBoundingClientRect();
   function move(points, speed) {
     if (reduced) speed *= 2.5;
     return new Promise((done) => {
@@ -487,11 +669,31 @@ textarea { width: 100%; min-height: 128px; resize: vertical; line-height: 1.5; }
         let budget = speed * Math.min(0.05, (now - last) / 1000); last = now;
         while (budget > 0 && i < points.length) {
           const t = points[i], dx = t.x - pos.x, dy = t.y - pos.y, d = Math.hypot(dx, dy);
-          if (d <= budget) { pos = { x: t.x, y: t.y }; trail.push(pos); budget -= d; i++; }
+          if (d <= budget) { pos = { x: t.x, y: t.y }; budget -= d; i++; }
           else { pos = { x: pos.x + dx / d * budget, y: pos.y + dy / d * budget }; budget = 0; }
         }
-        place(); renderTrace();
+        tilt *= 0.9;
+        place();
         if (i < points.length) requestAnimationFrame(tick); else done();
+      }
+      requestAnimationFrame(tick);
+    });
+  }
+  function replay(sim, timeScale) {
+    const a = appRect(), r = pinCv.getBoundingClientRect(), ox = r.left - a.left, oy = r.top - a.top;
+    const n = sim.frames.length / 2;
+    return new Promise((done) => {
+      const t0 = performance.now();
+      let hi = 0;
+      function tick(now) {
+        const f = Math.min(n - 1, Math.floor((now - t0) / 1000 / PIN_DT / timeScale));
+        while (hi < sim.hits.length && sim.hits[hi].f <= f) { pin.flash[sim.hits[hi].i] = 1; hi++; }
+        const x = sim.frames[f * 2], y = sim.frames[f * 2 + 1];
+        const vx = f > 0 ? (x - sim.frames[f * 2 - 2]) / PIN_DT : 0;
+        tilt = Math.max(-25, Math.min(25, vx / 12));
+        pos = { x: ox + x, y: oy + y };
+        place();
+        if (f >= n - 1) done(); else requestAnimationFrame(tick);
       }
       requestAnimationFrame(tick);
     });
@@ -500,56 +702,59 @@ textarea { width: 100%; min-height: 128px; resize: vertical; line-height: 1.5; }
 
   /* ---------- 진행 ---------- */
   const msg = $('#msg');
-  const fast = () => $('#fast').checked;
   const canDraw = () => pool.length > 0 && emptySeats().length > 0;
 
   async function drawOne() {
     if (busy || !canDraw()) return;
+    const S = sp();
     busy = true; refresh();
-    clearTrace();
     msg.textContent = '구슬을 섞는 중…';
     mixing = true;
-    await wait(reduced ? 300 : fast() ? 500 : 1700);
+    await wait(reduced ? 400 : S.mix);
 
     const id = pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
     const st = students[id];
     const ball = balls.find((b) => b.id === id);
+    exitSpeed = S.exit;
     ball.exit = true;
     mixing = false;
     await new Promise((r) => { const chk = () => (ball.done ? r() : requestAnimationFrame(chk)); chk(); });
     balls = balls.filter((b) => b !== ball);
     showPicked(st);
+    await wait(reduced ? 100 : 500);
 
-    // 자리는 빈자리 중에서 고르고, 사다리는 그 자리로 이어지는 출발점을 찾는다
+    // 자리는 빈자리 중에서 고르고, 핀볼을 미리 굴려 그 칸으로 들어가는 궤적을 찾는다
+    buildPin();
     const free = emptySeats();
-    const seat = free[Math.floor(Math.random() * free.length)];
-    newLadder(); drawLadder();
-    let entry = 0;
-    while (exitOf(entry) !== seat.col) entry++;
+    let seat = free[Math.floor(Math.random() * free.length)];
+    let sim = null, backup = null;
+    for (let tries = 0; tries < 500 && !sim; tries++) {
+      const s = simulate(pin.rb + 4 + Math.random() * (pin.PW - 2 * pin.rb - 8));
+      if (!s) continue;
+      if (s.col === seat.col) sim = s;
+      else if (!backup && free.some((t) => t.col === s.col)) backup = s;
+    }
+    if (!sim) { sim = backup; const inCol = free.filter((t) => t.col === sim.col); seat = inCol[Math.floor(Math.random() * inCol.length)]; }
 
-    const a = app.getBoundingClientRect(), c = cv.getBoundingClientRect();
-    pos = { x: c.left - a.left + CX * (c.width / W), y: c.top - a.top + (H - 4) * (c.width / W) };
-    flyLabel.textContent = st.label;
-    fly.style.setProperty('--c', st.color);
-    fly.hidden = false; place(); trail = [pos];
+    const a = appRect(), c = cv.getBoundingClientRect(), k = c.width / W;
+    pos = { x: c.left - a.left + CX * k, y: c.top - a.top + (H - 6) * k };
+    tilt = 0;
+    flyImg.src = animal(st.animal).url;
+    flyName.textContent = st.full;
+    fly.style.setProperty('--d', `${(2 * pin.rb) / FACE}px`);
+    fly.hidden = false; place();
 
-    const g = geo();
-    msg.textContent = `${st.full} 구슬이 사다리로 갑니다…`;
-    await move([{ x: pos.x, y: g.top - 14 }, { x: g.xs[entry], y: g.top - 14 }, { x: g.xs[entry], y: g.top + 6 }], fast() ? 1600 : 900);
-    const stage = $('#stage').getBoundingClientRect();
-    if (stage.top > innerHeight * 0.5) $('#stage').scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+    const pr = pinCv.getBoundingClientRect(), pTop = pr.top - a.top, pLeft = pr.left - a.left;
+    msg.textContent = `${st.full} ${KO[st.animal]}가 핀볼 판으로 갑니다…`;
+    await move([{ x: pos.x, y: pTop - 34 }, { x: pLeft + sim.frames[0], y: pTop - 34 }, { x: pLeft + sim.frames[0], y: pTop + sim.frames[1] }], S.move);
+    if (pr.top > innerHeight * 0.45) $('#stage').scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
 
-    const pts = []; let col = entry;
-    g.ys.forEach((y, k) => {
-      pts.push({ x: g.xs[col], y });
-      if (rungs[k].has(col)) col++; else if (rungs[k].has(col - 1)) col--;
-      pts.push({ x: g.xs[col], y });
-    });
-    pts.push({ x: g.xs[col], y: g.bottom });
-    await move(pts, fast() ? 1000 : 420);
+    msg.textContent = '통통… 어디로 갈까요?';
+    await replay(sim, S.pin);
 
-    const sr = seat.el.getBoundingClientRect(), a2 = app.getBoundingClientRect();
-    await move([{ x: sr.left - a2.left + sr.width / 2, y: sr.top - a2.top + sr.height / 2 }], fast() ? 1200 : 600);
+    const a2 = appRect(), pr2 = pinCv.getBoundingClientRect(), sr = seat.el.getBoundingClientRect();
+    const cx = pr2.left - a2.left + pin.xs[seat.col];
+    await move([{ x: cx, y: pr2.bottom - a2.top + 6 }, { x: cx, y: sr.bottom - a2.top - sr.height * 0.55 }], S.seat);
 
     fly.hidden = true;
     seat.student = st;
@@ -562,16 +767,13 @@ textarea { width: 100%; min-height: 128px; resize: vertical; line-height: 1.5; }
   }
 
   function showPicked(st) {
-    const big = $('#pickedBall');
-    big.style.background = st.color;
-    big.firstElementChild.textContent = st.label;
-    $('#pickedName').textContent = st.full;
+    $('#pickedFace').replaceChildren(faceImg(st));
+    $('#pickedName').textContent = `${st.full} (${KO[st.animal]})`;
   }
   function addLog(st, seat) {
     const li = document.createElement('li');
-    const d = document.createElement('span'); d.className = 'dot'; d.style.setProperty('--c', st.color);
     const b = document.createElement('b'); b.textContent = st.full;
-    li.append(d, b, ` → ${seatName(seat)}`);
+    li.append(faceImg(st), b, ` → ${seatName(seat)}`);
     $('#log').appendChild(li);
     li.scrollIntoView({ block: 'nearest' });
   }
@@ -592,22 +794,21 @@ textarea { width: 100%; min-height: 128px; resize: vertical; line-height: 1.5; }
 
   function buildStudents() {
     const mode = document.querySelector('input[name=mode]:checked').value;
+    const kinds = ANIMALS.map(([k]) => k).sort(() => Math.random() - 0.5);
     if (mode === 'num') {
       const n = Math.max(1, Math.min(40, parseInt($('#count').value, 10) || 1));
       $('#count').value = n;
-      students = Array.from({ length: n }, (_, i) => ({ id: i, label: String(i + 1), full: `${i + 1}번`, color: lottoColor(i + 1) }));
+      students = Array.from({ length: n }, (_, i) => ({ id: i, label: String(i + 1), full: `${i + 1}번`, animal: kinds[i % kinds.length] }));
     } else {
       const names = $('#names').value.split('\n').map((s) => s.trim()).filter(Boolean);
-      students = names.map((nm, i) => ({ id: i, label: [...nm].slice(-2).join(''), full: nm, color: LOTTO[i % 5] }));
+      students = names.map((nm, i) => ({ id: i, label: [...nm].slice(-2).join(''), full: nm, animal: kinds[i % kinds.length] }));
     }
     pool = students.map((s) => s.id);
     seats.forEach((t) => { t.student = null; renderSeat(t); });
     $('#log').innerHTML = '';
-    $('#pickedBall').style.background = '';
-    $('#pickedBall').firstElementChild.textContent = '?';
+    $('#pickedFace').innerHTML = '<span class="empty">?</span>';
     $('#pickedName').textContent = '없음';
     msg.textContent = students.length ? `구슬 ${students.length}개를 넣었습니다. ‘한 명 뽑기’를 눌러 주세요.` : '명단이 비어 있습니다.';
-    clearTrace();
     fillDrum();
     refresh();
   }
@@ -621,18 +822,17 @@ textarea { width: 100%; min-height: 128px; resize: vertical; line-height: 1.5; }
   $('#autoBtn').addEventListener('click', async () => {
     if (auto) { auto = false; refresh(); return; }
     auto = true; refresh();
-    while (auto && canDraw()) { await drawOne(); if (auto) await wait(fast() ? 150 : 500); }
+    while (auto && canDraw()) { await drawOne(); if (auto) await wait(sp().gap); }
     auto = false; refresh();
   });
 
   let rz;
-  addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { sizeDrum(); drawLadder(); if (!busy) clearTrace(); }, 120); });
+  addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { sizeDrum(); if (!busy) buildPin(); }, 120); });
 
   sizeDrum();
-  newLadder();
   buildStudents();
-  drawLadder();
-  if (document.fonts) document.fonts.ready.then(() => { sizeDrum(); drawLadder(); });
+  buildPin();
+  if (document.fonts) document.fonts.ready.then(() => { sizeDrum(); if (!busy) buildPin(); });
   requestAnimationFrame(loop);
 })();
 </script>
