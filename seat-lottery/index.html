@@ -162,6 +162,17 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
 .bin h3 { margin: 0 0 8px; font-family: var(--f-display); font-weight: 400; font-size: 19px; color: var(--chalk-dim); }
 .bin.win h3 { color: var(--accent); }
 .chips-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.fix-add { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) auto; gap: 6px; }
+.fix-add select { min-width: 0; }
+.fix-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.fix-list li { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.fix-list li b { color: var(--accent); }
+.fix-list li .state { font-size: 12px; color: var(--chalk-dim); }
+.fix-list li .state.bad { color: var(--warn); }
+.fix-list button { margin-left: auto; border: 1px solid var(--line); background: transparent; color: var(--chalk-dim); border-radius: 8px; padding: 2px 10px; font-size: 13px; }
+.desk.fixed { color: var(--desk-ink); font-family: var(--f-body); font-weight: 700; }
+.desk.fixed::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #c0392b; margin-right: 3px; vertical-align: 1px; }
+@media (max-width: 460px) { .fix-add { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .fix-add .btn { grid-column: 1 / -1; } }
 .kidchip { display: inline-flex; align-items: center; gap: 4px; background: var(--bubble); color: var(--desk-ink); border-radius: 999px; padding: 2px 12px 2px 2px; font-weight: 700; font-size: 14px; max-width: 100%; }
 .kidchip img { width: 30px; height: 30px; flex: none; }
 .bin.win .kidchip { font-size: 18px; }
@@ -232,6 +243,15 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
       <label class="field"><span>발표할 인원 · ‘끝까지 자동’은 이만큼 뽑히면 멈춥니다</span><input type="number" id="talkGoal" min="1" max="100" value="3"></label>
       <label class="speed"><input type="checkbox" id="talkRepeat"> 통과한 친구는 구슬에 다시 넣기</label>
     </div>
+    <div class="field" id="fixBox">
+      <span>고정 학생 · 정해진 자리나 앞자리에 앉힐 학생 (자리 뽑기)</span>
+      <div class="fix-add">
+        <select id="fixWho" aria-label="고정할 학생"></select>
+        <select id="fixWhere" aria-label="고정 방법"></select>
+        <button class="btn" id="fixAdd" type="button">추가</button>
+      </div>
+      <ul class="fix-list" id="fixList"></ul>
+    </div>
     <p class="hint" id="seatHint">학생마다 동물이 하나씩 정해지고, 30명까지는 모두 다른 동물입니다. 자리 뽑기는 30석이라 명단이 더 길면 앞의 30명만 들어갑니다. 뽑기 전에 교실 자리를 누르면 ‘사용 안 함’으로 막을 수 있고, 다시 누르면 풀립니다.</p>
     <p class="warn" id="warn" hidden></p>
     <ol class="log" id="log" aria-label="배정 기록"></ol>
@@ -259,6 +279,7 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
         <li><b>추첨기</b>: 학생마다 동물 얼굴 구슬(30종, 30명까지는 겹치지 않음)이 통 안에서 굴러다니고, 뽑을 때 바람이 불듯 섞인 뒤 아래 구멍으로 한 마리가 나옵니다.</li>
         <li><b>핀볼 판</b>: 울퉁불퉁한 핀에 부딪히며 내려가 아래쪽 칸 6개(분단마다 왼쪽·오른쪽) 중 하나로 들어갑니다.</li>
         <li><b>교실</b>: 교탁이 맨 아래, 그 바로 위가 1줄입니다. 3분단 × 짝꿍 2열 × 5줄 = 30석.</li>
+        <li><b>고정 학생</b>: 특정 자리에 미리 앉히거나(자리 지정), 구슬로 뽑되 앞쪽 줄 안에서만 자리가 정해지게(앞자리) 할 수 있습니다. 다른 학생을 뽑을 때도 앞자리 학생 몫의 자리는 남겨 둡니다.</li>
         <li><b>결과 한 번에 보기</b>: 애니메이션 없이 결과만 바로 보여 줍니다. 뽑는 도중에는 ‘건너뛰고 결과 보기’로 바뀌어, 한두 명만 보여 주고 나머지를 바로 끝낼 수 있습니다. 자리 뽑기는 남은 학생을 모두 앉히고, 발표자 뽑기는 ‘발표할 인원’이 찰 때까지 뽑습니다.</li>
         <li><b>발표자 뽑기</b>: 핀볼 아래 6칸 중 ‘발표’ 칸(기본 2칸)에 들어가면 당첨, 나머지는 통과입니다. 발표 칸 위치는 뽑을 때마다 섞입니다. ‘발표/통과 칸 쓰기’를 끄면 핀볼 없이 뽑힌 친구가 바로 발표자가 됩니다.</li>
       </ul>
@@ -281,7 +302,6 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
       <h3>다음에 정할 것</h3>
       <ul>
         <li>짝꿍 규칙 (남녀 짝, 같은 짝 반복 금지)</li>
-        <li>앞자리 고정 학생 (시력, 배려 필요 학생)</li>
         <li>결과 저장 방식 (이미지, 엑셀, 지난 자리 기록)</li>
         <li>교실 TV 화면에 맞춘 크기와 효과음</li>
       </ul>
@@ -501,7 +521,7 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
       el.className = 'seat';
       el.type = 'button';
       el.id = `seat-${b}-${r}-${s}`;
-      const seat = { b, r, s, col: vis * SIDES + s, el, off: false, student: null };
+      const seat = { b, r, s, key: `${b}-${r}-${s}`, col: vis * SIDES + s, el, off: false, student: null, fixed: false };
       el.addEventListener('click', () => {
         if (busy || seat.student) return;
         seat.off = !seat.off;
@@ -531,13 +551,93 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
       el.appendChild(kid);
     }
     const desk = document.createElement('span');
-    desk.className = 'desk';
-    desk.textContent = t.off ? '사용 안 함' : `${t.r + 1}`;
+    desk.className = t.fixed ? 'desk fixed' : 'desk';
+    desk.textContent = t.off ? '사용 안 함' : t.fixed ? '고정' : `${t.r + 1}`;
     el.appendChild(desk);
     el.setAttribute('aria-label', `${seatName(t)}: ${t.student ? t.student.full : t.off ? '사용 안 함' : '빈자리'}`);
     if (pop && !reduced) { el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
   }
   const emptySeats = () => seats.filter((t) => !t.off && !t.student);
+
+  /* ---------- 고정 학생 ---------- */
+  // 이름 → { kind: 'seat', seat: '분단-줄-좌우' } | { kind: 'front1' } (1줄) | { kind: 'front2' } (1~2줄)
+  const fixRules = new Map();
+  try { for (const [k, v] of JSON.parse(localStorage.getItem('seatLottery.fix') || '[]')) fixRules.set(k, v); } catch (e) { /* 저장소를 못 쓰면 이번만 기억 */ }
+  const saveFixes = () => { try { localStorage.setItem('seatLottery.fix', JSON.stringify([...fixRules])); } catch (e) { /* 무시 */ } };
+  const ruleOf = (st) => fixRules.get(st.full);
+  const FRONT = { front1: 0, front2: 1 }; // 허용되는 가장 뒷줄 (0 = 1줄)
+  const ruleText = (rule) => rule.kind === 'seat' ? (seats.some((t) => t.key === rule.seat) ? seatName(seats.find((t) => t.key === rule.seat)) : '없는 자리') : rule.kind === 'front1' ? '맨 앞줄(1줄)' : '앞자리(1~2줄)';
+
+  // 이 학생이 앉을 수 있는 빈자리. 앞자리 학생이 아직 구슬에 남아 있으면 그 몫의 앞자리는 남겨 둔다.
+  function seatChoices(st) {
+    const free = emptySeats();
+    const rule = ruleOf(st), maxRow = rule && rule.kind in FRONT ? FRONT[rule.kind] : Infinity;
+    const waiting = pool.filter((id) => id !== st.id).map((id) => ruleOf(students[id])).filter((r) => r && r.kind in FRONT);
+    const need0 = waiting.filter((r) => r.kind === 'front1').length, need01 = waiting.length;
+    const okAfter = (seat) => {
+      const rest = free.filter((t) => t !== seat);
+      return rest.filter((t) => t.r === 0).length >= need0 && rest.filter((t) => t.r <= 1).length >= need01;
+    };
+    const allowed = free.filter((t) => t.r <= maxRow);
+    const safe = allowed.filter(okAfter);
+    return safe.length ? safe : allowed.length ? allowed : free;
+  }
+
+  // '자리 지정' 학생을 그 자리에 바로 앉힌다 (구슬에서 빠짐)
+  function applyFixes() {
+    for (const [name, rule] of fixRules) {
+      if (rule.kind !== 'seat') continue;
+      const st = students.find((x) => x.full === name && x.id < MAX_SEAT), seat = seats.find((t) => t.key === rule.seat);
+      if (!st || !seat || seat.student || !pools.seat.includes(st.id)) continue;
+      seat.off = false; seat.student = st; seat.fixed = true;
+      pools.seat.splice(pools.seat.indexOf(st.id), 1);
+      renderSeat(seat, true);
+    }
+    if (mode === 'seat') balls = balls.filter((b) => pool.includes(b.id));
+  }
+  function unfix(name) {
+    const seat = seats.find((t) => t.fixed && t.student && t.student.full === name);
+    if (seat) {
+      const st = seat.student;
+      seat.student = null; seat.fixed = false; renderSeat(seat);
+      pools.seat.push(st.id);
+      if (mode === 'seat') balls.push({ id: st.id, x: CX, y: CY - R * 0.4, vx: 0, vy: 0, r: ballRadius(pool.length) });
+    }
+    fixRules.delete(name);
+  }
+  function renderFixUI() {
+    const who = $('#fixWho'), keep = who.value;
+    who.replaceChildren(new Option('학생 고르기', ''));
+    students.filter((st) => st.id < MAX_SEAT && !fixRules.has(st.full)).forEach((st) => who.add(new Option(st.full, st.full)));
+    if ([...who.options].some((o) => o.value === keep)) who.value = keep;
+    const list = $('#fixList');
+    list.replaceChildren();
+    for (const [name, rule] of fixRules) {
+      const st = students.find((x) => x.full === name && x.id < MAX_SEAT);
+      const li = document.createElement('li');
+      const b = document.createElement('b'); b.textContent = name;
+      const state = document.createElement('span'); state.className = 'state';
+      if (!st) { state.textContent = '명단에 없음'; state.classList.add('bad'); }
+      else if (rule.kind === 'seat') {
+        const seat = seats.find((t) => t.key === rule.seat);
+        const ok = !!seat && seat.fixed && seat.student === st;
+        state.textContent = ok ? '앉음' : !seat ? '없는 자리' : seat.student ? '자리가 이미 찼습니다' : '구슬에서 이미 뽑혔습니다';
+        if (!ok) state.classList.add('bad');
+      } else state.textContent = pool.includes(st.id) || mode !== 'seat' ? '뽑을 때 적용' : '';
+      const x = document.createElement('button'); x.type = 'button'; x.textContent = '빼기';
+      x.addEventListener('click', () => { if (busy) return; unfix(name); saveFixes(); renderFixUI(); refresh(); });
+      li.append(b, ` → ${ruleText(rule)} `, state, x);
+      list.appendChild(li);
+    }
+  }
+  {
+    const where = $('#fixWhere');
+    where.add(new Option('앞자리 (1~2줄 중 무작위)', 'front2'));
+    where.add(new Option('맨 앞줄 (1줄 중 무작위)', 'front1'));
+    const g = document.createElement('optgroup'); g.label = '자리 지정';
+    [...seats].sort((a, b) => a.r - b.r || a.col - b.col).forEach((t) => g.appendChild(new Option(seatName(t), 'seat:' + t.key)));
+    where.appendChild(g);
+  }
 
   /* ---------- 추첨기 (캔버스 물리) ---------- */
   const cv = $('#drum'), ctx = cv.getContext('2d');
@@ -899,7 +999,7 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
     // 그다음 핀볼을 미리 굴려 그 칸으로 들어가는 실제 궤적을 찾는다.
     if (mode === 'talk') shuffleTalkSlots();
     buildPin();
-    const free = mode === 'seat' ? emptySeats() : [];
+    const free = mode === 'seat' ? seatChoices(st) : [];
     let seat = mode === 'seat' ? free[Math.floor(Math.random() * free.length)] : null;
     let target = seat ? seat.col : Math.floor(Math.random() * SLOTS);
     let sim = null, backup = null;
@@ -1026,7 +1126,7 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
     let i = 0;
     if (mode === 'seat') {
       while (canDraw()) {
-        const st = students[take()], free = emptySeats(), seat = free[Math.floor(Math.random() * free.length)];
+        const st = students[take()], free = seatChoices(st), seat = free[Math.floor(Math.random() * free.length)];
         seat.student = st;
         setTimeout(() => renderSeat(seat, true), (i++) * 60);
         addLog(st, seat);
@@ -1085,11 +1185,19 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
     $('#instantBtn').textContent = runningNow ? '건너뛰고 결과 보기' : '결과 한 번에 보기';
     $('#autoBtn').textContent = auto ? '자동 멈추기' : '끝까지 자동';
     $('#applyBtn').disabled = busy;
+    $('#fixAdd').disabled = busy;
+    if (!busy) renderFixUI();
     const short = mode === 'seat' ? pool.length - free : 0, warn = $('#warn');
     const over = mode === 'seat' && students.length > MAX_SEAT;
     warn.hidden = short <= 0 && !over;
     if (over) warn.textContent = `자리 뽑기는 ${MAX_SEAT}석이라 명단 ${students.length}명 중 앞의 ${MAX_SEAT}명만 구슬에 넣었습니다. 전체는 발표자 뽑기에서 쓸 수 있습니다.`;
     else if (short > 0) warn.textContent = `자리가 ${short}석 모자랍니다. ‘사용 안 함’ 자리를 풀거나 인원을 줄여 주세요.`;
+    if (mode === 'seat' && !over && short <= 0) {
+      const waiting = pool.map((id) => ruleOf(students[id])).filter((r) => r && r.kind in FRONT);
+      const freeSeats = emptySeats(), n0 = waiting.filter((r) => r.kind === 'front1').length;
+      const lack = n0 > freeSeats.filter((t) => t.r === 0).length ? '1줄' : waiting.length > freeSeats.filter((t) => t.r <= 1).length ? '1~2줄' : '';
+      if (lack) { warn.hidden = false; warn.textContent = `앞자리 학생이 ${lack} 빈자리보다 많습니다. 일부는 다른 줄에 앉게 됩니다.`; }
+    }
   }
 
   // 붙여넣은 명단 → 이름 목록. 줄바꿈·쉼표·탭(엑셀 칸)으로 나누고, 번호 칸과 "1." 같은 앞 번호는 버린다.
@@ -1128,11 +1236,13 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
     pool = pools[mode];
     talk.win = []; talk.lose = [];
     $('#winList').replaceChildren(); $('#loseList').replaceChildren();
-    seats.forEach((t) => { t.student = null; renderSeat(t); });
+    seats.forEach((t) => { t.student = null; t.fixed = false; renderSeat(t); });
     $('#log').innerHTML = '';
     $('#pickedName').textContent = '없음';
     msg.textContent = students.length ? `구슬 ${students.length}개를 넣었습니다. ‘한 명 뽑기’를 눌러 주세요.` : '명단이 비어 있습니다.';
     fillDrum();
+    applyFixes();
+    renderFixUI();
     refresh();
   }
 
@@ -1142,7 +1252,7 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
     clearTimeout(nt);
     nt = setTimeout(() => {
       namesStatus();
-      if (!busy && !seats.some((t) => t.student) && !talk.win.length && !talk.lose.length) buildStudents();
+      if (!busy && !seats.some((t) => t.student && !t.fixed) && !talk.win.length && !talk.lose.length) buildStudents();
       else msg.textContent = '명단이 바뀌었습니다. ‘구슬 다시 넣기’를 누르면 처음부터 다시 뽑습니다.';
     }, 300);
   };
@@ -1169,7 +1279,7 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
     $('#winSlotsField').hidden = direct;
     $('#loseBin').hidden = direct && !talk.lose.length;
     $('#seatArea').hidden = !seatMode; $('#talkArea').hidden = seatMode;
-    $('#talkSettings').hidden = seatMode; $('#seatHint').hidden = !seatMode; $('#log').hidden = !seatMode;
+    $('#talkSettings').hidden = seatMode; $('#seatHint').hidden = !seatMode; $('#fixBox').hidden = !seatMode; $('#log').hidden = !seatMode;
     showNow(null, seatMode ? '뽑힌 친구 이름이 여기에 나옵니다' : '발표할 친구 이름이 여기에 나옵니다');
   }
   document.querySelectorAll('input[name=mode]').forEach((r) => r.addEventListener('change', () => {
@@ -1187,6 +1297,22 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
   $('#winSlots').addEventListener('change', () => { shuffleTalkSlots(); if (!busy) buildPin(); });
   $('#talkSlots').addEventListener('change', () => { if (busy) return; applyMode(); buildPin(); refresh(); });
   // 뽑는 중이면 지금 뽑힌 친구를 바로 제자리에 넣고, 남은 결과도 한 번에 보여 준다
+  $('#fixAdd').addEventListener('click', () => {
+    const name = $('#fixWho').value, where = $('#fixWhere').value;
+    if (busy || !name) { msg.textContent = '고정할 학생을 먼저 골라 주세요.'; return; }
+    let rule;
+    if (where.startsWith('seat:')) {
+      const key = where.slice(5), taken = [...fixRules].find(([, r]) => r.kind === 'seat' && r.seat === key);
+      if (taken) { msg.textContent = `그 자리는 이미 ${taken[0]} 고정 자리입니다.`; return; }
+      rule = { kind: 'seat', seat: key };
+    } else rule = { kind: where };
+    fixRules.set(name, rule);
+    saveFixes();
+    applyFixes();
+    renderFixUI();
+    msg.textContent = `${name} → ${ruleText(rule)} 고정`;
+    refresh();
+  });
   $('#instantBtn').addEventListener('click', async () => {
     if (busy || auto) {
       auto = false;
