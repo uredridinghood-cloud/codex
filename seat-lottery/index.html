@@ -76,6 +76,9 @@ button { font: inherit; cursor: pointer; }
 .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 .btn:disabled { opacity: .45; cursor: not-allowed; }
 .btn:focus-visible, .seat:focus-visible, .seg label:focus-within, textarea:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.btn.sound { padding: 5px 12px; font-size: 14px; font-weight: 600; }
+.btn.sound[aria-pressed="true"] { background: var(--line); border-color: var(--line); }
+.btn.sound[aria-pressed="false"] { color: var(--chalk-dim); border-style: dashed; }
 .msg { min-height: 1.5em; margin: 0; text-align: center; color: var(--chalk); }
 .names-status { margin: 0; font-size: 13px; color: var(--chalk); }
 .seg { display: inline-flex; border: 1.5px solid var(--line); border-radius: 10px; overflow: hidden; }
@@ -230,6 +233,11 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
         <label><input type="radio" name="speed" value="fast" id="speedFast"> 빠르게</label>
       </div>
     </div>
+    <div class="speed">
+      <span>소리</span>
+      <button class="btn sound" id="sfxBtn" type="button" aria-pressed="true">효과음 켜짐</button>
+      <button class="btn sound" id="bgmBtn" type="button" aria-pressed="true">배경음악 켜짐</button>
+    </div>
     <p class="msg" id="msg" aria-live="polite">‘한 명 뽑기’를 누르면 구슬이 섞이기 시작합니다.</p>
   </section>
 
@@ -293,6 +301,7 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
         <li><b>핀볼 판</b>: 울퉁불퉁한 핀에 부딪히며 내려가 아래쪽 칸 6개(분단마다 왼쪽·오른쪽) 중 하나로 들어갑니다.</li>
         <li><b>교실</b>: 교탁이 맨 아래, 그 바로 위가 1줄입니다. 3분단 × 짝꿍 2열 × 5줄 = 30석.</li>
         <li><b>고정 학생</b>: 특정 자리에 미리 앉히거나(자리 지정), 구슬로 뽑되 앞쪽 줄 안에서만 자리가 정해지게(앞자리) 할 수 있습니다. 다른 학생을 뽑을 때도 앞자리 학생 몫의 자리는 남겨 둡니다.</li>
+        <li><b>소리</b>: 오락실 핀볼 같은 8비트 배경음악과 효과음(달그락 섞기, 뽁 나오기, 띵띵 핀, 데굴데굴, 뾰롱 앉기, 빰빠밤 당첨)을 브라우저가 직접 만들어 냅니다. 소리 파일이 없어 인터넷이 없어도 나옵니다.</li>
         <li><b>엑셀로 저장</b>: 자리가 정해지면 자리배치표(자리 · 분단 · 교탁 · 명렬표)를 엑셀 파일로 내려받습니다. 오른쪽 명렬표에는 번호와 이름이 들어갑니다.</li>
         <li><b>자리 바꾸기</b>: 앉아 있는 학생을 누르고 다른 자리를 누르면 두 학생이 서로 날아가 자리를 바꿉니다. 빈자리를 누르면 그리로 옮겨 갑니다.</li>
         <li><b>결과 한 번에 보기</b>: 애니메이션 없이 결과만 바로 보여 줍니다. 뽑는 도중에는 ‘건너뛰고 결과 보기’로 바뀌어, 한두 명만 보여 주고 나머지를 바로 끝낼 수 있습니다. 자리 뽑기는 남은 학생을 모두 앉히고, 발표자 뽑기는 ‘발표할 인원’이 찰 때까지 뽑습니다.</li>
@@ -318,7 +327,7 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
       <ul>
         <li>짝꿍 규칙 (남녀 짝, 같은 짝 반복 금지)</li>
         <li>다른 저장 방식 (이미지, 엑셀, 지난 자리 기록)</li>
-        <li>교실 TV 화면에 맞춘 크기와 효과음</li>
+        <li>교실 TV 화면에 맞춘 크기</li>
       </ul>
     </section>
   </section>
@@ -515,6 +524,121 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
   // 건너뛰기: true가 되면 진행 중인 애니메이션이 모두 즉시 끝난다
   let skipping = false, running = null;
   const skipWaiters = new Set();
+
+  /* ---------- 소리: 소리 파일 없이 Web Audio로 직접 만든다 (오프라인에서도 나옴) ---------- */
+  const Sound = (() => {
+    const pref = (k, d) => { try { const v = localStorage.getItem('seatLottery.' + k); return v === null ? d : v === '1'; } catch (e) { return d; } };
+    const save = (k, v) => { try { localStorage.setItem('seatLottery.' + k, v ? '1' : '0'); } catch (e) { /* 무시 */ } };
+    let ctx = null, sfxBus = null, bgmBus = null, noiseBuf = null;
+    let sfxOn = pref('sfx', true), bgmOn = pref('bgm', true), bgmTimer = null, nextAt = 0, stepNo = 0, lastPeg = 0;
+    const hz = (m) => 440 * Math.pow(2, (m - 69) / 12);
+    function ensure() {
+      if (!ctx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return null;
+        ctx = new AC();
+        const master = ctx.createGain(); master.gain.value = 0.9; master.connect(ctx.destination);
+        sfxBus = ctx.createGain(); sfxBus.gain.value = 0.55; sfxBus.connect(master);
+        bgmBus = ctx.createGain(); bgmBus.gain.value = 0.16; bgmBus.connect(master);
+        noiseBuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+        const ch = noiseBuf.getChannelData(0);
+        for (let i = 0; i < ch.length; i++) ch[i] = Math.random() * 2 - 1;
+      }
+      if (ctx.state === 'suspended') ctx.resume();
+      return ctx;
+    }
+    // 음 하나: 모양(type), 높이(freq → slide), 길이, 크기
+    function tone(freq, { type = 'square', dur = 0.12, vol = 0.25, slide = 0, at = 0, bus = sfxBus, cut = 0 } = {}) {
+      const t = ctx.currentTime + at, o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = type; o.frequency.setValueAtTime(freq, t);
+      if (slide) o.frequency.exponentialRampToValueAtTime(slide, t + dur);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.008);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      let node = o;
+      if (cut) { const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = cut; o.connect(f); node = f; }
+      node.connect(g); g.connect(bus); o.start(t); o.stop(t + dur + 0.02);
+    }
+    function noise({ dur = 0.05, vol = 0.2, freq = 3000, q = 1, at = 0, bus = sfxBus, type = 'bandpass', sweep = 0 } = {}) {
+      const t = ctx.currentTime + at, src = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+      src.buffer = noiseBuf; f.type = type; f.frequency.setValueAtTime(freq, t); f.Q.value = q;
+      if (sweep) f.frequency.exponentialRampToValueAtTime(sweep, t + dur);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.005); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      src.connect(f); f.connect(g); g.connect(bus); src.start(t, Math.random() * 0.5); src.stop(t + dur + 0.02);
+    }
+    const ready = () => sfxOn && !skipping && ensure();
+
+    // 배경음악: 8마디 반복, 8분음표 단위 (C · G · Am · F · C · G · F · G)
+    const LEAD = [72, 76, 79, 76, 84, 0, 79, 0, 74, 79, 83, 79, 86, 0, 83, 0, 76, 72, 69, 72, 76, 79, 81, 0, 77, 76, 74, 72, 74, 0, 72, 0,
+      72, 76, 79, 84, 83, 79, 76, 79, 79, 0, 74, 79, 83, 86, 83, 0, 81, 79, 77, 76, 77, 81, 84, 0, 83, 0, 79, 0, 74, 76, 79, 0];
+    const ROOTS = [48, 43, 45, 41, 48, 43, 41, 43];
+    const STEP = 60 / 138 / 2;
+    function scheduleBgm() {
+      while (nextAt < ctx.currentTime + 0.15) {
+        const at = nextAt - ctx.currentTime, i = stepNo % 64, bar = Math.floor(i / 8), beat = i % 8;
+        if (LEAD[i]) tone(hz(LEAD[i]), { type: 'square', dur: STEP * 0.9, vol: 0.22, at, bus: bgmBus, cut: 2600 });
+        if (beat % 2 === 0) { const r = ROOTS[bar], off = [0, 7, 12, 7][beat / 2]; tone(hz(r + off), { type: 'triangle', dur: STEP * 1.8, vol: 0.45, at, bus: bgmBus }); }
+        if (beat === 0 || beat === 4) tone(140, { type: 'sine', dur: 0.12, vol: 0.5, slide: 50, at, bus: bgmBus });
+        if (beat % 2 === 1) noise({ dur: 0.03, vol: 0.12, freq: 8000, type: 'highpass', at, bus: bgmBus });
+        nextAt += STEP; stepNo++;
+      }
+    }
+    function startBgm() {
+      if (!bgmOn || bgmTimer || document.hidden || !ensure()) return;
+      nextAt = ctx.currentTime + 0.05;
+      bgmTimer = setInterval(scheduleBgm, 40);
+    }
+    function stopBgm() { clearInterval(bgmTimer); bgmTimer = null; }
+    document.addEventListener('visibilitychange', () => (document.hidden ? stopBgm() : startBgm()));
+    // 브라우저는 사용자가 한 번 누른 뒤에만 소리를 낼 수 있다
+    document.addEventListener('pointerdown', function unlock() { document.removeEventListener('pointerdown', unlock); ensure(); startBgm(); });
+
+    return {
+      get sfx() { return sfxOn; }, get bgm() { return bgmOn; },
+      setSfx(v) { sfxOn = v; save('sfx', v); if (v && ensure()) tone(1320, { type: 'triangle', dur: 0.08, vol: 0.2 }); },
+      setBgm(v) { bgmOn = v; save('bgm', v); if (v) startBgm(); else stopBgm(); },
+      // 구슬 섞기: 달그락거리는 소리를 섞는 동안 계속
+      mix(ms) {
+        if (!ready()) return () => {};
+        let alive = true;
+        noise({ dur: Math.min(ms, 3000) / 1000, vol: 0.06, freq: 500, sweep: 1400, type: 'bandpass', q: 0.7 });
+        const tick = () => { if (!alive || skipping) return; noise({ dur: 0.025, vol: 0.25 + Math.random() * 0.15, freq: 2200 + Math.random() * 2500, q: 6 }); setTimeout(tick, 45 + Math.random() * 70); };
+        tick();
+        return () => { alive = false; };
+      },
+      pop() { if (ready()) { tone(320, { type: 'sine', dur: 0.14, vol: 0.5, slide: 980 }); noise({ dur: 0.04, vol: 0.15, freq: 1800 }); } },
+      // 핀: 부딪힐 때마다 '띵' (핀마다 음높이가 달라 멜로디처럼)
+      peg(i) {
+        if (!ready()) return;
+        const now = ctx.currentTime; if (now - lastPeg < 0.035) return; lastPeg = now;
+        const scale = [84, 86, 88, 91, 93, 96, 98, 100];
+        tone(hz(scale[i % scale.length]), { type: 'triangle', dur: 0.11, vol: 0.28 });
+        tone(hz(scale[i % scale.length] + 12), { type: 'sine', dur: 0.06, vol: 0.08 });
+      },
+      // 데굴데굴: 점점 느려지는 나무 소리
+      roll(ms) {
+        if (!ready()) return () => {};
+        let alive = true, tAcc = 0, gap = 55;
+        const tick = () => {
+          if (!alive || skipping || tAcc > ms) return;
+          noise({ dur: 0.03, vol: 0.22, freq: 900 + Math.random() * 300, q: 8 });
+          tAcc += gap; gap *= 1.09; setTimeout(tick, gap);
+        };
+        tick();
+        return () => { alive = false; };
+      },
+      land() { if (ready()) { tone(200, { type: 'sine', dur: 0.16, vol: 0.45, slide: 70 }); noise({ dur: 0.05, vol: 0.12, freq: 600 }); } },
+      sit() { if (ready()) { tone(523, { type: 'square', dur: 0.08, vol: 0.18, slide: 1046, cut: 3000 }); tone(1046, { type: 'triangle', dur: 0.16, vol: 0.2, at: 0.08 }); } },
+      win() {
+        if (!ready()) return;
+        [72, 76, 79, 84].forEach((m, k) => tone(hz(m), { type: 'square', dur: 0.14, vol: 0.2, at: k * 0.1, cut: 3500 }));
+        tone(hz(88), { type: 'square', dur: 0.4, vol: 0.2, at: 0.4, cut: 3500 });
+        for (let k = 0; k < 6; k++) tone(hz(96 + (k % 3) * 4), { type: 'sine', dur: 0.08, vol: 0.08, at: 0.45 + k * 0.06 });
+      },
+      lose() { if (ready()) { tone(392, { type: 'triangle', dur: 0.18, vol: 0.3, slide: 330 }); tone(330, { type: 'triangle', dur: 0.35, vol: 0.3, slide: 196, at: 0.18 }); } },
+      swap() { if (ready()) { noise({ dur: 0.45, vol: 0.18, freq: 400, sweep: 4000, q: 2 }); tone(660, { type: 'triangle', dur: 0.08, vol: 0.15 }); tone(880, { type: 'triangle', dur: 0.08, vol: 0.15, at: 0.35 }); } },
+      jingle() { if (sfxOn && ensure()) [72, 76, 79, 84, 79, 84].forEach((m, k) => tone(hz(m), { type: 'square', dur: 0.12, vol: 0.16, at: k * 0.08, cut: 3500 })); },
+    };
+  })();
 
   const SPEEDS = {
     slow:   { mix: 3400, exit: 1.1, move: 240, pin: 1.6,  seat: 170, gap: 1800 },
@@ -938,7 +1062,7 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
       let hi = 0;
       function tick(now) {
         const f = skipping ? n - 1 : Math.min(n - 1, Math.floor((now - t0) / 1000 / PIN_DT / timeScale));
-        while (hi < sim.hits.length && sim.hits[hi].f <= f) { pin.flash[sim.hits[hi].i] = 1; hi++; }
+        while (hi < sim.hits.length && sim.hits[hi].f <= f) { pin.flash[sim.hits[hi].i] = 1; Sound.peg(sim.hits[hi].i); hi++; }
         const x = sim.frames[f * 2], y = sim.frames[f * 2 + 1];
         const vx = f > 0 ? (x - sim.frames[f * 2 - 2]) / PIN_DT : 0;
         tilt = Math.max(-25, Math.min(25, vx / 12));
@@ -971,11 +1095,15 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
     const degPerPx = (360 * turns) / d, over = Math.min(28, 12 + d * 0.06);
     const at = (y) => { pos = { x, y }; tilt = (y - y0) * degPerPx; };
     tilt = 0;
-    await tween(Math.max(900, (d / S.seat) * 1300), (t) => at(y0 + (d + over) * easeOut(t)));
+    const T1 = Math.max(900, (d / S.seat) * 1300), stopRoll = Sound.roll((reduced ? 0.4 : 1) * (T1 + 780));
+    await tween(T1, (t) => at(y0 + (d + over) * easeOut(t)));
     await tween(480, (t) => at(y1 + over - (over + 6) * easeInOut(t)));
     await tween(300, (t) => at(y1 - 6 + 6 * easeOut(t)));
+    stopRoll();
     tilt = 0;
+    Sound.land();
     await tween(260, (t) => { const k = Math.sin(Math.PI * t); sq = { x: 1 + 0.18 * k, y: 1 - 0.22 * k }; });
+    Sound.sit();
     await tween(320, (t) => { const k = Math.sin(Math.PI * t); pos = { x, y: y1 - 16 * k }; sq = { x: 1 - 0.06 * k, y: 1 + 0.08 * k }; });
     sq = { x: 1, y: 1 };
   }
@@ -992,7 +1120,9 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
     busy = true; refresh();
     msg.textContent = '구슬을 섞는 중…';
     mixing = true;
+    const stopMix = Sound.mix(reduced ? 400 : S.mix);
     await wait(reduced ? 400 : S.mix);
+    stopMix();
 
     const id = pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
     const st = students[id];
@@ -1002,6 +1132,7 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
     mixing = false;
     await new Promise((r) => { const chk = () => (ball.done || skipping ? r() : requestAnimationFrame(chk)); chk(); });
     balls = balls.filter((b) => b !== ball);
+    Sound.pop();
     showPicked(st);
     if (mode === 'talk' && !slotsOn()) { await directTalk(st, S); return; }
     await wait(reduced ? 100 : 500);
@@ -1076,6 +1207,7 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
     sq = { x: 1, y: 1 };
     pin.lit = { col, t: 1 };
     if (win) confetti(pin.xs[col], pin.divTop + 10);
+    if (win) Sound.win(); else Sound.lose();
     showNow(st, win ? '발표 당첨!' : '통과', win);
     msg.textContent = win ? `${st.full} 발표 당첨!` : `${st.full} 통과`;
     if (win) await tween(700, (t) => { const k = Math.sin(Math.PI * t * 3) * (1 - t); tilt = 18 * k; sq = { x: 1 + 0.12 * Math.abs(k), y: 1 + 0.12 * Math.abs(k) }; });
@@ -1114,6 +1246,7 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
     fly.style.setProperty('--d', '52px');
     fly.hidden = false; place();
     showNow(st, '발표!', true);
+    Sound.win();
     msg.textContent = `${st.full} 발표!`;
     const br = $('#winList').getBoundingClientRect();
     if (br.top > innerHeight * 0.7) $('#stage').scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
@@ -1160,6 +1293,7 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
     }
     balls = balls.filter((b) => pool.includes(b.id));
     $('#pickedName').textContent = '한 번에 보기';
+    Sound.jingle();
     refresh();
   }
 
@@ -1343,6 +1477,7 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
       a.student = sb; a.fixed = sb ? fb : false;
       b.student = sa; b.fixed = fa;
       renderSeat(a, !!sb); renderSeat(b, true);
+      Sound.sit();
       const li = document.createElement('li');
       li.append(`바꿈: ${sa.full} ↔ ${sb ? sb.full : '빈자리'} (${seatName(a)} ↔ ${seatName(b)})`);
       $('#log').appendChild(li);
@@ -1351,6 +1486,7 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
       busy = false;
       refresh();
     };
+    Sound.swap();
     if (reduced) { finish(); return; }
     busy = true; refresh();
     // 두 캐릭터가 서로의 자리로 날아가 엇갈린다
@@ -1513,6 +1649,13 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
   $('#talkSlots').addEventListener('change', () => { if (busy) return; applyMode(); buildPin(); refresh(); });
   // 뽑는 중이면 지금 뽑힌 친구를 바로 제자리에 넣고, 남은 결과도 한 번에 보여 준다
   $('#xlsxBtn').addEventListener('click', saveXlsx);
+  const soundUI = () => {
+    $('#sfxBtn').setAttribute('aria-pressed', Sound.sfx); $('#sfxBtn').textContent = Sound.sfx ? '효과음 켜짐' : '효과음 꺼짐';
+    $('#bgmBtn').setAttribute('aria-pressed', Sound.bgm); $('#bgmBtn').textContent = Sound.bgm ? '배경음악 켜짐' : '배경음악 꺼짐';
+  };
+  $('#sfxBtn').addEventListener('click', () => { Sound.setSfx(!Sound.sfx); soundUI(); });
+  $('#bgmBtn').addEventListener('click', () => { Sound.setBgm(!Sound.bgm); soundUI(); });
+  soundUI();
   try { $('#classTitle').value = localStorage.getItem('seatLottery.title') || ''; } catch (e) { /* 무시 */ }
   $('#classTitle').addEventListener('input', () => { try { localStorage.setItem('seatLottery.title', $('#classTitle').value); } catch (e) { /* 무시 */ } });
   $('#fixAdd').addEventListener('click', () => {
