@@ -88,7 +88,7 @@ button { font: inherit; cursor: pointer; }
 .setup { grid-area: setup; display: grid; gap: 12px; align-content: start; }
 .field { display: grid; gap: 6px; }
 .field span { font-size: 13px; color: var(--chalk-dim); }
-input[type=number], textarea, select { font: inherit; color: var(--chalk); background: var(--board-deep); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+input[type=number], input[type=text], textarea, select { font: inherit; color: var(--chalk); background: var(--board-deep); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
 input[type=number] { width: 110px; font-family: var(--f-mono); }
 textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
 .hint { margin: 0; font-size: 13px; color: var(--chalk-dim); }
@@ -167,6 +167,9 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
 .bin h3 { margin: 0 0 8px; font-family: var(--f-display); font-weight: 400; font-size: 19px; color: var(--chalk-dim); }
 .bin.win h3 { color: var(--accent); }
 .chips-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.export { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
+.export .field { flex: 1 1 200px; }
+.export .hint { flex-basis: 100%; }
 .fix-add { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) auto; gap: 6px; }
 .fix-add select { min-width: 0; }
 .fix-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
@@ -270,6 +273,11 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
     <div id="seatArea">
       <div class="seats" id="seats"></div>
       <div class="front"><div class="podium"></div><small>교탁 · 앞쪽</small></div>
+      <div class="export">
+        <label class="field"><span>자리배치표 제목 칸 (예: 1학년 2반) · 반 숫자는 명렬표 ‘반’ 칸에도 들어갑니다</span><input type="text" id="classTitle" placeholder="1학년 2반"></label>
+        <button class="btn primary" id="xlsxBtn" type="button">엑셀로 저장</button>
+        <p class="hint" id="exportHint">자리배치표(3분단 · 교탁 · 명렬표 30줄)에 지금 자리와 명단을 채워 엑셀(.xlsx) 파일로 내려받습니다. A4 가로 한 장에 맞춰 인쇄됩니다. 인터넷이 없어도 됩니다.</p>
+      </div>
     </div>
     <div class="bins" id="talkArea" hidden>
       <div class="bin win"><h3>발표할 친구 <b id="winCount">0</b></h3><div class="chips-list" id="winList"></div></div>
@@ -285,6 +293,7 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
         <li><b>핀볼 판</b>: 울퉁불퉁한 핀에 부딪히며 내려가 아래쪽 칸 6개(분단마다 왼쪽·오른쪽) 중 하나로 들어갑니다.</li>
         <li><b>교실</b>: 교탁이 맨 아래, 그 바로 위가 1줄입니다. 3분단 × 짝꿍 2열 × 5줄 = 30석.</li>
         <li><b>고정 학생</b>: 특정 자리에 미리 앉히거나(자리 지정), 구슬로 뽑되 앞쪽 줄 안에서만 자리가 정해지게(앞자리) 할 수 있습니다. 다른 학생을 뽑을 때도 앞자리 학생 몫의 자리는 남겨 둡니다.</li>
+        <li><b>엑셀로 저장</b>: 자리가 정해지면 자리배치표(자리 · 분단 · 교탁 · 명렬표)를 엑셀 파일로 내려받습니다. 오른쪽 명렬표에는 번호와 이름이 들어갑니다.</li>
         <li><b>자리 바꾸기</b>: 앉아 있는 학생을 누르고 다른 자리를 누르면 두 학생이 서로 날아가 자리를 바꿉니다. 빈자리를 누르면 그리로 옮겨 갑니다.</li>
         <li><b>결과 한 번에 보기</b>: 애니메이션 없이 결과만 바로 보여 줍니다. 뽑는 도중에는 ‘건너뛰고 결과 보기’로 바뀌어, 한두 명만 보여 주고 나머지를 바로 끝낼 수 있습니다. 자리 뽑기는 남은 학생을 모두 앉히고, 발표자 뽑기는 ‘발표할 인원’이 찰 때까지 뽑습니다.</li>
         <li><b>발표자 뽑기</b>: 핀볼 아래 6칸 중 ‘발표’ 칸(기본 2칸)에 들어가면 당첨, 나머지는 통과입니다. 발표 칸 위치는 뽑을 때마다 섞입니다. ‘발표/통과 칸 쓰기’를 끄면 핀볼 없이 뽑힌 친구가 바로 발표자가 됩니다.</li>
@@ -308,7 +317,7 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
       <h3>다음에 정할 것</h3>
       <ul>
         <li>짝꿍 규칙 (남녀 짝, 같은 짝 반복 금지)</li>
-        <li>결과 저장 방식 (이미지, 엑셀, 지난 자리 기록)</li>
+        <li>다른 저장 방식 (이미지, 엑셀, 지난 자리 기록)</li>
         <li>교실 TV 화면에 맞춘 크기와 효과음</li>
       </ul>
     </section>
@@ -1162,6 +1171,149 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
   function showPicked(st) {
     $('#pickedName').textContent = st.full;
   }
+  /* ---------- 엑셀(XLSX)로 저장 ---------- */
+  // 인터넷 없이도 저장되도록 zip(무압축)을 직접 만든다
+  const CRC_TABLE = (() => {
+    const t = new Uint32Array(256);
+    for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; }
+    return t;
+  })();
+  const crc32 = (u8) => { let c = 0xFFFFFFFF; for (let i = 0; i < u8.length; i++) c = CRC_TABLE[(c ^ u8[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; };
+  function makeZip(entries, type) {
+    const enc = new TextEncoder(), parts = [], central = [];
+    let offset = 0;
+    for (const e of entries) {
+      const name = enc.encode(e.name), data = enc.encode(e.text), crc = crc32(data);
+      const lh = new DataView(new ArrayBuffer(30));
+      lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true); lh.setUint16(6, 0x0800, true); // UTF-8 이름
+      lh.setUint16(12, 0x21, true); lh.setUint32(14, crc, true); lh.setUint32(18, data.length, true); lh.setUint32(22, data.length, true);
+      lh.setUint16(26, name.length, true);
+      parts.push(lh, name, data);
+      const ch = new DataView(new ArrayBuffer(46));
+      ch.setUint32(0, 0x02014b50, true); ch.setUint16(4, 20, true); ch.setUint16(6, 20, true); ch.setUint16(8, 0x0800, true);
+      ch.setUint16(14, 0x21, true); ch.setUint32(16, crc, true); ch.setUint32(20, data.length, true); ch.setUint32(24, data.length, true);
+      ch.setUint16(28, name.length, true); ch.setUint32(42, offset, true);
+      central.push(ch, name);
+      offset += 30 + name.length + data.length;
+    }
+    const size = central.reduce((n, x) => n + x.byteLength, 0), end = new DataView(new ArrayBuffer(22));
+    end.setUint32(0, 0x06054b50, true); end.setUint16(8, entries.length, true); end.setUint16(10, entries.length, true);
+    end.setUint32(12, size, true); end.setUint32(16, offset, true);
+    return new Blob([...parts, ...central, end], { type });
+  }
+
+  // 명렬표에 들어갈 줄: 반(제목의 'N반' 숫자) · 번호 · 이름 (번호로 뽑았으면 이름은 비움)
+  function rosterInfo() {
+    const title = $('#classTitle').value.trim();
+    const ban = (title.match(/(\d+)\s*반/) || [])[1] || '';
+    const rows = students.filter((st) => st.id < MAX_SEAT).slice(0, 30)
+      .map((st) => ({ ban, no: String(st.id + 1), name: /^\d+번$/.test(st.full) ? '' : st.full }));
+    return { title, ban, rows };
+  }
+
+  // 엑셀: 한 장에 자리표(왼쪽) + 교탁 + 명렬표(오른쪽). 자리 한 칸은 세 줄을 합쳐 크게, A4 가로 한 장에 맞춰 인쇄
+  function buildXlsx() {
+    const esc = (v) => String(v).replace(/[<>&"]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c]));
+    const colName = (c) => String.fromCharCode(65 + c);
+    const cellsX = new Map(), merges = [];
+    const put = (r, c, v, st) => cellsX.set(`${r},${c}`, { r, c, v, st });
+    const box = (r1, c1, r2, c2, v, st) => {
+      for (let r = r1; r <= r2; r++) for (let c = c1; c <= c2; c++) put(r, c, r === r1 && c === c1 ? v : '', st);
+      if (r1 !== r2 || c1 !== c2) merges.push(`${colName(c1)}${r1}:${colName(c2)}${r2}`);
+    };
+    // 스타일 번호: 1 제목, 2 자리, 3 분단 이름, 4 교탁, 5 명렬표 머리글, 6 명렬표 칸, 7 반 제목
+    box(1, 0, 1, 7, '자리배치표', 1);
+    for (const t of seats) {
+      const top = 3 + 3 * (ROWS - 1 - t.r), col = (t.col >> 1) * 3 + (t.col & 1);
+      box(top, col, top + 2, col, t.student ? t.student.full : '', 2);
+    }
+    for (let vis = 0; vis < BUNDAN; vis++) box(18, vis * 3, 18, vis * 3 + 1, `${BUNDAN - vis}분단`, 3);
+    box(20, 2, 22, 5, '교탁', 4);
+    const info = rosterInfo();
+    box(1, 9, 1, 11, info.title || '명렬표', 7);
+    put(2, 9, '반', 5); put(2, 10, '번호', 5); put(2, 11, '이름', 5);
+    for (let i = 0; i < 30; i++) {
+      const row = info.rows[i] || { ban: '', no: '', name: '' };
+      put(3 + i, 9, row.ban === '' ? '' : +row.ban, 6); put(3 + i, 10, row.no === '' ? '' : +row.no, 6); put(3 + i, 11, row.name, 6);
+    }
+    const byRow = new Map();
+    for (const x of cellsX.values()) { if (!byRow.has(x.r)) byRow.set(x.r, []); byRow.get(x.r).push(x); }
+    const rowsXml = [...byRow.keys()].sort((a, b) => a - b).map((r) => {
+      const cs = byRow.get(r).sort((a, b) => a.c - b.c).map((x) => {
+        const ref = `${colName(x.c)}${x.r}`;
+        if (x.v === '') return `<c r="${ref}" s="${x.st}"/>`;
+        if (typeof x.v === 'number') return `<c r="${ref}" s="${x.st}"><v>${x.v}</v></c>`;
+        return `<c r="${ref}" s="${x.st}" t="inlineStr"><is><t>${esc(x.v)}</t></is></c>`;
+      }).join('');
+      return `<row r="${r}"${r === 1 ? ' ht="36" customHeight="1"' : ''}>${cs}</row>`;
+    }).join('');
+    const widths = [14, 14, 3, 14, 14, 3, 14, 14, 4, 6, 7, 12];
+    const head = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
+    const sheet = head + '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+      + '<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><dimension ref="A1:L32"/>'
+      + '<sheetViews><sheetView workbookViewId="0" showGridLines="0"/></sheetViews><sheetFormatPr defaultRowHeight="16.5"/>'
+      + '<cols>' + widths.map((w, i) => `<col min="${i + 1}" max="${i + 1}" width="${w}" customWidth="1"/>`).join('') + '</cols>'
+      + `<sheetData>${rowsXml}</sheetData>`
+      + `<mergeCells count="${merges.length}">${merges.map((m) => `<mergeCell ref="${m}"/>`).join('')}</mergeCells>`
+      + '<printOptions horizontalCentered="1"/><pageMargins left="0.4" right="0.4" top="0.5" bottom="0.5" header="0.3" footer="0.3"/>'
+      + '<pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="1"/></worksheet>';
+    const border = '<border><left style="thin"><color auto="1"/></left><right style="thin"><color auto="1"/></right><top style="thin"><color auto="1"/></top><bottom style="thin"><color auto="1"/></bottom><diagonal/></border>';
+    const center = '<alignment horizontal="center" vertical="center" wrapText="1"/>';
+    const styles = head + '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+      + '<fonts count="5"><font><sz val="11"/><name val="맑은 고딕"/><family val="3"/></font><font><b/><sz val="20"/><name val="맑은 고딕"/><family val="3"/></font>'
+      + '<font><sz val="14"/><name val="맑은 고딕"/><family val="3"/></font><font><b/><sz val="11"/><name val="맑은 고딕"/><family val="3"/></font><font><b/><sz val="16"/><name val="맑은 고딕"/><family val="3"/></font></fonts>'
+      + '<fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFE7E6E6"/><bgColor indexed="64"/></patternFill></fill></fills>'
+      + `<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border>${border}</borders>`
+      + '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'
+      + '<cellXfs count="8"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>'
+      + `<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1">${center}</xf>`
+      + `<xf numFmtId="0" fontId="2" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1">${center}</xf>`
+      + `<xf numFmtId="0" fontId="3" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1">${center}</xf>`
+      + `<xf numFmtId="0" fontId="4" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1">${center}</xf>`
+      + `<xf numFmtId="0" fontId="3" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1">${center}</xf>`
+      + `<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1">${center}</xf>`
+      + `<xf numFmtId="0" fontId="3" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1">${center}</xf></cellXfs>`
+      + '<cellStyles count="1"><cellStyle name="표준" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+    return makeZip([
+      { name: '[Content_Types].xml', text: head + '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>' },
+      { name: '_rels/.rels', text: head + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>' },
+      { name: 'xl/workbook.xml', text: head + '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="자리배치표" sheetId="1" r:id="rId1"/></sheets></workbook>' },
+      { name: 'xl/_rels/workbook.xml.rels', text: head + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>' },
+      { name: 'xl/styles.xml', text: styles },
+      { name: 'xl/worksheets/sheet1.xml', text: sheet },
+    ], 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  }
+
+  // 파일 건네기: Claude 미리보기에서는 저장 확인 창(downloads), 그 밖(공유 주소·내려받은 HTML)에서는 일반 다운로드
+  async function offerFile(name, blob) {
+    const dl = window.claude && window.claude.use ? await window.claude.use('downloads') : null;
+    if (dl) {
+      try { await dl.save({ filename: name, data: blob }); return 'saved'; } catch (e) {
+        if (e && e.code === 'declined') return 'declined';
+        if (e && e.code === 'rejected_extension') return 'blocked';
+        if (e && e.code === 'rate_limited') return 'busy';
+      }
+    }
+    const url = URL.createObjectURL(blob), a = document.createElement('a');
+    a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    return 'saved';
+  }
+  async function saveXlsx() {
+    $('#xlsxBtn').disabled = true;
+    try {
+      const d = new Date(), pad = (n) => String(n).padStart(2, '0');
+      const name = `자리배치표_${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}.xlsx`;
+      const res = await offerFile(name, buildXlsx());
+      msg.textContent = res === 'declined' ? '저장을 취소했습니다.'
+        : res === 'blocked' ? '이 화면에서는 파일을 저장할 수 없습니다. 공유 주소(uredridinghood-cloud.github.io/codex)에서 저장해 주세요.'
+        : res === 'busy' ? '저장 확인 창이 이미 열려 있습니다. 잠시 뒤 다시 눌러 주세요.'
+        : `${name} 파일을 저장했습니다. 엑셀에서 열어 확인해 주세요.`;
+    } catch (e) {
+      msg.textContent = '엑셀 파일을 만들지 못했습니다. 다시 눌러 주세요.';
+    } finally { refresh(); }
+  }
+
   /* ---------- 자리 바꾸기: 학생을 누르고 다른 자리를 누르면 서로 바뀐다 ---------- */
   let picked = null;
   function clearPick() { if (picked) picked.el.classList.remove('picked'); picked = null; }
@@ -1245,6 +1397,7 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
     $('#autoBtn').textContent = auto ? '자동 멈추기' : '끝까지 자동';
     $('#applyBtn').disabled = busy;
     $('#fixAdd').disabled = busy;
+    $('#xlsxBtn').disabled = busy || auto || !seats.some((t) => t.student);
     if (!busy) renderFixUI();
     if ((busy || auto) && picked) clearPick();
     const short = mode === 'seat' ? pool.length - free : 0, warn = $('#warn');
@@ -1359,6 +1512,9 @@ textarea { width: 100%; min-height: 150px; resize: vertical; line-height: 1.5; }
   $('#winSlots').addEventListener('change', () => { shuffleTalkSlots(); if (!busy) buildPin(); });
   $('#talkSlots').addEventListener('change', () => { if (busy) return; applyMode(); buildPin(); refresh(); });
   // 뽑는 중이면 지금 뽑힌 친구를 바로 제자리에 넣고, 남은 결과도 한 번에 보여 준다
+  $('#xlsxBtn').addEventListener('click', saveXlsx);
+  try { $('#classTitle').value = localStorage.getItem('seatLottery.title') || ''; } catch (e) { /* 무시 */ }
+  $('#classTitle').addEventListener('input', () => { try { localStorage.setItem('seatLottery.title', $('#classTitle').value); } catch (e) { /* 무시 */ } });
   $('#fixAdd').addEventListener('click', () => {
     const name = $('#fixWho').value, where = $('#fixWhere').value;
     if (busy || !name) { msg.textContent = '고정할 학생을 먼저 골라 주세요.'; return; }
